@@ -35,6 +35,7 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   auditLogs    AuditLog[]
+  staffProfile StaffProfile?
 }
 model AuditLog {
   id        Int      @id @default(autoincrement())
@@ -74,4 +75,14 @@ model Service {
   isActive    Boolean         @default(true)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+}
+
+model StaffProfile {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @unique
+  user              User      @relation(fields: [userId], references: [id])
+  designation       String?
+  joiningDate       DateTime?
+  baseSalary        Decimal   @default(0) @db.Decimal(10, 2)
+  commissionPercent Decimal   @default(0) @db.Decimal(5, 2)
 }
