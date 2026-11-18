@@ -6,11 +6,12 @@ const router = Router();
 router.use(authenticate);
 const customerSchema = z.object({
   name: z.string().min(2),
-  phone: z.string().min(10),
+  phone: z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit mobile number'),
   email: z.string().email().optional(),
   gender: z.string().optional(),
   dob: z.coerce.date().optional(),
   notes: z.string().optional(),
+  isActive: z.boolean().optional(),
 });
 const canWrite = authorize('OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST');
 router.get('/', async (req, res) => {
@@ -55,3 +56,5 @@ router.put('/:id', canWrite, async (req, res) => {
   }
 });
 export default router;
+
+
