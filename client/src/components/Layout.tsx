@@ -9,7 +9,7 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, ready: true },
   { to: '/customers', label: 'Customers', icon: Users, ready: true },
   { to: '/appointments', label: 'Appointments', icon: CalendarDays, ready: true },
-  { to: '/billing', label: 'Billing / POS', icon: Receipt, ready: false },
+  { to: '/billing', label: 'Billing / POS', icon: Receipt, ready: true },
   { to: '/services', label: 'Services', icon: Scissors, ready: true },
   { to: '/staff', label: 'Staff', icon: UserCog, ready: true },
   { to: '/inventory', label: 'Inventory', icon: Boxes, ready: true },
@@ -97,6 +97,7 @@ export default function Layout() {
     </div>
   );
 }
+
 
 
 

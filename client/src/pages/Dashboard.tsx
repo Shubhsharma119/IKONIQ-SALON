@@ -14,7 +14,8 @@ type Stats = {
   services: number;
   activeStaff: number;
   recentCustomers: { id: number; name: string; phone: string; createdAt: string }[];
-  staff: { id: number; name: string; role: string; staffProfile: { designation: string | null } | null }[];
+  staff: { id: number; name: string; role: string; staffProfile: { designation: string | null } | null; todayRevenue: number }[];
+  lowStock: { id: number; name: string; unit: string; stockQty: number; lowStockLevel: number }[];
   week: { date: string; customers: number; sales: number }[];
   todaySales: number;
   todayCollection: number;
@@ -94,8 +95,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label="Today's sales" value={inr(s.todaySales)} icon={IndianRupee} tone="emerald" hint={pending} />
         <StatCard label="Collection" value={inr(s.todayCollection)} icon={Wallet} tone="blue" hint={pending} />
-        <StatCard label="Expenses" value={inr(s.todayExpenses)} icon={TrendingUp} tone="amber" hint={pending} />
-        <StatCard label="Estimated profit" value={inr(s.estimatedProfit)} icon={TrendingUp} tone="violet" hint={pending} />
+        <StatCard label="Expenses" value={inr(s.todayExpenses)} icon={TrendingUp} tone="amber" hint="Expenses module ke baad data aayega" />
+        <StatCard label="Estimated profit" value={inr(s.estimatedProfit)} icon={TrendingUp} tone="violet" hint="Expenses module ke baad data aayega" />
       </div>
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label="Customers" value={s.customers} icon={Users} tone="indigo" />
@@ -140,10 +141,10 @@ export default function Dashboard() {
             <span className="text-sm">{s.todayAppointments} appointments</span>
           </div>
         </Panel>
-        <Panel title="Low stock alerts" note="Inventory ke baad data aayega">
+        <Panel title="Low stock alerts">
           <div className="flex items-center gap-3 text-slate-400 py-6 justify-center">
             <PackageX size={22} />
-            <span className="text-sm">No alerts</span>
+            <span className="text-sm">{s.lowStock.length === 0 ? "No alerts" : s.lowStock.map((p) => p.name + " (" + p.stockQty + " " + p.unit + ")").join(", ")}</span>
           </div>
         </Panel>
         <Panel title="Recent customers">
@@ -168,7 +169,7 @@ export default function Dashboard() {
             </ul>
           )}
         </Panel>
-        <Panel title="Staff" note="Performance billing ke baad">
+        <Panel title="Staff" note="Billed today">
           {s.staff.length === 0 ? (
             <Empty text="No staff yet" />
           ) : (
@@ -182,7 +183,7 @@ export default function Dashboard() {
                     <div className="text-sm font-medium text-slate-800 truncate">{m.name}</div>
                     <div className="text-xs text-slate-500">{m.staffProfile?.designation || m.role}</div>
                   </div>
-                  <div className="text-xs text-slate-400">{inr(0)}</div>
+                  <div className="text-xs text-slate-400">{inr(m.todayRevenue)}</div>
                 </li>
               ))}
             </ul>
@@ -192,4 +193,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 

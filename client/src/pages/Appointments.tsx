@@ -64,6 +64,11 @@ function ApptCard(props: {
       <div className="mt-1 text-sm text-slate-600">{a.services.map((s) => s.service.name).join(', ')}</div>
       <div className="text-xs text-slate-400">{inr(total)}</div>
       {a.notes && <div className="mt-1 text-xs italic text-slate-500">{a.notes}</div>}
+      {props.canWrite && (a.status === 'COMPLETED' || a.status === 'IN_PROGRESS') && (
+        <a href={"/billing?appointment=" + a.id} className="mt-2 inline-block rounded-md border border-indigo-300 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50">
+          Create bill
+        </a>
+      )}
       {props.canWrite && ['SCHEDULED', 'CHECKED_IN', 'IN_PROGRESS'].includes(a.status) && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {a.status === 'SCHEDULED' && (
@@ -487,3 +492,4 @@ export default function Appointments() {
     </div>
   );
 }
+
