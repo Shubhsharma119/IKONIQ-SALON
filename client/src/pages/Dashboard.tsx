@@ -134,7 +134,7 @@ export default function Dashboard() {
         </Panel>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Panel title="Today's appointments" note={pending}>
+        <Panel title="Today's appointments">
           <div className="flex items-center gap-3 text-slate-400 py-6 justify-center">
             <CalendarDays size={22} />
             <span className="text-sm">{s.todayAppointments} appointments</span>
@@ -192,3 +192,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

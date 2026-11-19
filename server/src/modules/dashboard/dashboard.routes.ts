@@ -42,6 +42,12 @@ router.get('/', async (_req, res) => {
       sales: 0,
     });
   }
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const todayAppointments = await prisma.appointment.count({
+    where: { startAt: { gte: start, lt: end }, status: { not: 'CANCELLED' } },
+  });
+
   res.json({
     customers,
     newCustomersToday,
@@ -54,8 +60,9 @@ router.get('/', async (_req, res) => {
     todayCollection: 0,
     todayExpenses: 0,
     estimatedProfit: 0,
-    todayAppointments: 0,
+    todayAppointments,
     billingReady: false,
   });
 });
 export default router;
+

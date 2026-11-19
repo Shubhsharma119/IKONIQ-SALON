@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
 import Services from './pages/Services';
 import Staff from './pages/Staff';
+import Appointments from './pages/Appointments';
 function Protected() {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-8 text-slate-500">Loading...</div>;
@@ -21,9 +22,11 @@ export default function App() {
         <Route path="/customers" element={<Customers />} />
         <Route path="/services" element={<Services />} />
         <Route path="/staff" element={<Staff />} />
+        <Route path="/appointments" element={<Appointments />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
+
 

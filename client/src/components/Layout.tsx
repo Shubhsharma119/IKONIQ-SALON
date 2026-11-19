@@ -8,7 +8,7 @@ import { useAuth } from '../auth';
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, ready: true },
   { to: '/customers', label: 'Customers', icon: Users, ready: true },
-  { to: '/appointments', label: 'Appointments', icon: CalendarDays, ready: false },
+  { to: '/appointments', label: 'Appointments', icon: CalendarDays, ready: true },
   { to: '/billing', label: 'Billing / POS', icon: Receipt, ready: false },
   { to: '/services', label: 'Services', icon: Scissors, ready: true },
   { to: '/staff', label: 'Staff', icon: UserCog, ready: true },
@@ -96,5 +96,6 @@ export default function Layout() {
     </div>
   );
 }
+
 
 
