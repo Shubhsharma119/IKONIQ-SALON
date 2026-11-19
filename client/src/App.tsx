@@ -8,6 +8,8 @@ import Services from './pages/Services';
 import Staff from './pages/Staff';
 import Appointments from './pages/Appointments';
 import Inventory from './pages/Inventory';
+import Packages from './pages/Packages';
+import Memberships from './pages/Memberships';
 function Protected() {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-8 text-slate-500">Loading...</div>;
@@ -25,11 +27,15 @@ export default function App() {
         <Route path="/staff" element={<Staff />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/packages" element={<Packages />} />
+        <Route path="/memberships" element={<Memberships />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
+
+
 
 
 

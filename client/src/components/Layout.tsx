@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays, Scissors, Receipt, UserCog,
-  Boxes, Truck, Gift, Wallet, BarChart3, Settings, LogOut, Menu,
+  Boxes, Truck, Gift, Crown, Wallet, BarChart3, Settings, LogOut, Menu,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 const nav = [
@@ -14,7 +14,8 @@ const nav = [
   { to: '/staff', label: 'Staff', icon: UserCog, ready: true },
   { to: '/inventory', label: 'Inventory', icon: Boxes, ready: true },
   { to: '/suppliers', label: 'Suppliers', icon: Truck, ready: false },
-  { to: '/packages', label: 'Packages', icon: Gift, ready: false },
+  { to: '/packages', label: 'Packages', icon: Gift, ready: true },
+  { to: '/memberships', label: 'Memberships', icon: Crown, ready: true },
   { to: '/expenses', label: 'Expenses', icon: Wallet, ready: false },
   { to: '/reports', label: 'Reports', icon: BarChart3, ready: false },
   { to: '/settings', label: 'Settings', icon: Settings, ready: false },
@@ -96,6 +97,8 @@ export default function Layout() {
     </div>
   );
 }
+
+
 
 
 
