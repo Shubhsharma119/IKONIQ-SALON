@@ -125,3 +125,46 @@ model AppointmentService {
   price         Decimal     @db.Decimal(10, 2)
   durationMin   Int
 }
+enum ProductUsage {
+  SALE
+  SALON_USE
+  BOTH
+}
+enum StockMoveType {
+  IN
+  OUT
+  ADJUST
+  SALE
+  DAMAGED
+  USED
+}
+model Product {
+  id            Int             @id @default(autoincrement())
+  name          String
+  sku           String?         @unique
+  category      String?
+  unit          String          @default("piece")
+  usage         ProductUsage    @default(SALE)
+  costPrice     Decimal         @default(0) @db.Decimal(10, 2)
+  salePrice     Decimal         @default(0) @db.Decimal(10, 2)
+  stockQty      Decimal         @default(0) @db.Decimal(12, 3)
+  lowStockLevel Decimal         @default(0) @db.Decimal(12, 3)
+  expiryDate    DateTime?
+  isActive      Boolean         @default(true)
+  branchId      Int?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  movements     StockMovement[]
+}
+model StockMovement {
+  id           Int           @id @default(autoincrement())
+  productId    Int
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type         StockMoveType
+  qty          Decimal       @db.Decimal(12, 3)
+  balanceAfter Decimal       @db.Decimal(12, 3)
+  note         String?
+  createdById  Int?
+  createdAt    DateTime      @default(now())
+  @@index([productId, createdAt])
+}

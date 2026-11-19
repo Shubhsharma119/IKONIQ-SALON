@@ -9,7 +9,7 @@ const serviceSchema = z.object({
   name: z.string().min(2),
   categoryId: z.number().int(),
   price: z.number().nonnegative(),
-  durationMin: z.number().int().positive().default(30),
+  durationMin: z.number().int().positive(),
   isActive: z.boolean().optional(),
 });
 router.get('/categories', async (_req, res) => {
@@ -51,3 +51,4 @@ router.put('/:id', canManage, async (req, res) => {
   }
 });
 export default router;
+
