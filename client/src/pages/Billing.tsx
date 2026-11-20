@@ -7,6 +7,7 @@ import { inputCls } from '../components/Field';
 import { useToast } from '../components/Toast';
 import WhatsAppShare from '../components/WhatsAppShare';
 import { buildReceipt, printInvoice, scopeTypes, scopeLabel, type Invoice, type PrintScope, type Paper } from '../printing';
+import { SALON } from '../salon';
 type Cust = { id: number; name: string; phone: string; isActive: boolean };
 type Svc = { id: number; name: string; price: string | number; durationMin: number; isActive: boolean; category: { name: string } };
 type Prod = { id: number; name: string; sku: string | null; unit: string; usage: string; salePrice: string | number; stockQty: string | number; isActive: boolean };
@@ -61,7 +62,7 @@ function Tile(props: { title: string; sub?: string; price?: string; disabled?: b
 function InvoiceView(props: { inv: Invoice; canBill: boolean; onClose: () => void; onUpdated: (i: Invoice) => void }) {
   const { inv } = props;
   const toast = useToast();
-  let savedPaper: Paper = '80';
+  let savedPaper: Paper = SALON.defaultPaper === '58' || SALON.defaultPaper === 'A4' ? (SALON.defaultPaper as Paper) : '80';
   try {
     const s = localStorage.getItem('printPaper');
     if (s === '80' || s === '58' || s === 'A4') savedPaper = s;
@@ -278,8 +279,8 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discType, setDiscType] = useState<'NONE' | 'FLAT' | 'PERCENT'>('NONE');
   const [discValue, setDiscValue] = useState('');
-  const [isGst, setIsGst] = useState(false);
-  const [gstRate, setGstRate] = useState('18');
+  const [isGst, setIsGst] = useState(SALON.defaultGst);
+  const [gstRate, setGstRate] = useState(String(SALON.defaultGstRate));
   const [notes, setNotes] = useState('');
   const [pays, setPays] = useState<PayRow[]>([]);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -952,6 +953,9 @@ export default function Billing() {
     </div>
   );
 }
+
+
+
 
 
 

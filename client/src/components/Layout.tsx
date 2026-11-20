@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { api } from '../api';
+import { applySettings } from '../salon';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays, Scissors, Receipt, UserCog,
@@ -19,11 +21,14 @@ const nav = [
   { to: '/memberships', label: 'Memberships', icon: Crown, ready: true },
   { to: '/expenses', label: 'Expenses', icon: Wallet, ready: true },
   { to: '/reports', label: 'Reports', icon: BarChart3, ready: false },
-  { to: '/settings', label: 'Settings', icon: Settings, ready: false },
+  { to: '/settings', label: 'Settings', icon: Settings, ready: true },
 ];
 export default function Layout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    api('/settings').then(applySettings).catch(() => {});
+  }, []);
   const sidebar = (
     <aside className="w-64 h-full bg-slate-900 text-slate-300 flex flex-col">
       <div className="px-6 py-5 text-xl font-bold text-white tracking-tight">SalonPro</div>
@@ -98,6 +103,8 @@ export default function Layout() {
     </div>
   );
 }
+
+
 
 
 

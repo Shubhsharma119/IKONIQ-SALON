@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../utils/prisma';
 import { authenticate, authorize } from '../../middleware/auth';
+import { getSettings } from '../settings/settings.service';
 const router = Router();
 router.use(authenticate);
 const canBill = authorize('OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST');
@@ -301,7 +302,8 @@ router.post('/', canBill, async (req, res) => {
           update: { lastNo: { increment: 1 } },
           create: { key, lastNo: 1 },
         });
-        const invoiceNo = 'SP/' + key + '/' + String(c.lastNo).padStart(4, '0');
+        const cfg = await getSettings(tx);
+        const invoiceNo = cfg.invoice.prefix + '/' + key + '/' + String(c.lastNo).padStart(4, '0');
         const invoice = await tx.invoice.create({
           data: {
             invoiceNo,
@@ -474,6 +476,8 @@ router.post('/:id/payments', canBill, async (req, res) => {
   }
 });
 export default router;
+
+
 
 
 

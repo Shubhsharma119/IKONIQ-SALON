@@ -7,7 +7,7 @@ export type InvItem = {
   price: string | number;
   amount: string | number;
 };
-export type InvPayment = { id: number; mode: string; amount: string | number; reference: string | null; createdAt: string; balanceAfter?: string | number | null };
+export type InvPayment = { id: number; mode: string; amount: string | number; reference: string | null; createdAt: string };
 export type Invoice = {
   id: number;
   invoiceNo: string;
@@ -24,6 +24,8 @@ export type Invoice = {
   gstAmount: string | number;
   total: string | number;
   paidAmount: string | number;
+  walletUsed: string | number;
+  walletBalanceAfter: string | number | null;
   status: string;
   notes: string | null;
   createdAt: string;
@@ -79,6 +81,9 @@ export function buildReceipt(inv: Invoice, scope: PrintScope, paper: Paper, prev
     day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
   });
   const title = (inv.isGst ? 'TAX INVOICE' : 'BILL') + (scope === 'full' ? '' : ' - ' + scopeLabel[scope].toUpperCase());
+  const locality = [SALON.city, SALON.state].filter(Boolean).join(', ') + (SALON.pincode ? ' - ' + SALON.pincode : '');
+  const addrLines = [SALON.address, locality].filter((x) => x && x.trim()).map(esc);
+  const contact = [SALON.phone ? 'Ph: ' + SALON.phone : '', SALON.email].filter(Boolean).map(esc);
   const bodyCss = a4
     ? preview ? 'zoom:.5;padding:14mm;width:210mm;margin:0 auto;background:#fff;' : 'margin:0;'
     : 'width:' + w + ';padding:3mm;margin:' + (preview ? '0 auto' : '0') + ';' + (preview ? 'background:#fff;' : '');
@@ -89,6 +94,7 @@ html { ${preview ? 'background:#e5e7eb;' : ''} }
 body { font-family: Arial, Helvetica, sans-serif; color:#000; font-size:${fs}px; line-height:1.35; ${bodyCss} }
 .c { text-align:center; } .b { font-weight:700; } .small { font-size:${fs - 1.5}px; }
 .shop { font-size:${fs + 4}px; font-weight:700; text-align:center; }
+.logo { max-height:${a4 ? 22 : 14}mm; max-width:100%; }
 .hr { border-top:1px dashed #000; margin:5px 0; }
 .row { display:flex; justify-content:space-between; gap:6px; }
 .big { font-size:${fs + 2}px; }
@@ -138,24 +144,34 @@ th, td { padding:5px 4px; border-bottom:1px solid #bbb; text-align:left; }
       (due > 0.004
         ? '<div class="row b"><span>Balance due</span><span>' + RS + ' ' + money(due) + '</span></div>'
         : '<div class="c b" style="margin-top:4px">PAID IN FULL</div>') +
+      (inv.walletBalanceAfter !== null && inv.walletBalanceAfter !== undefined
+        ? '<div class="row"><span>E-Wallet balance</span><span>' + RS + ' ' + money(n(inv.walletBalanceAfter)) + '</span></div>'
+        : '') +
       (inv.notes ? '<div class="small" style="margin-top:4px">Note: ' + esc(inv.notes) + '</div>' : '');
   } else {
     pay =
       '<div class="hr"></div><div class="c small">Part of bill ' + esc(inv.invoiceNo) +
       '<br/>Combined bill total: ' + RS + ' ' + money(n(inv.total)) + '</div>';
   }
+  const gstLine = inv.isGst && SALON.gstin && SALON.showGstin ? '<div class="c small">GSTIN: ' + esc(SALON.gstin) + '</div>' : '';
+  const footer =
+    '<div class="hr"></div>' +
+    '<div class="c small">' + esc(SALON.footer || 'Thank you!') + '</div>' +
+    (SALON.upiId ? '<div class="c small" style="margin-top:3px">Pay via UPI: ' + esc(SALON.upiId) + '</div>' : '') +
+    (a4 && SALON.bankDetails ? '<div class="small" style="margin-top:6px;white-space:pre-line">' + esc(SALON.bankDetails) + '</div>' : '') +
+    (SALON.terms ? '<div class="small" style="margin-top:6px;white-space:pre-line">' + esc(SALON.terms) + '</div>' : '');
   const html =
     '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(inv.invoiceNo) + '</title><style>' + css + '</style></head><body>' +
+    (SALON.logo ? '<div class="c"><img class="logo" src="' + SALON.logo + '"/></div>' : '') +
     '<div class="shop">' + esc(SALON.name) + '</div>' +
-    '<div class="c small">' + esc(SALON.address) + '<br/>' + esc(SALON.phone) +
-    (inv.isGst && SALON.gstin ? '<br/>GSTIN: ' + esc(SALON.gstin) : '') + '</div>' +
+    (SALON.tagline ? '<div class="c small">' + esc(SALON.tagline) + '</div>' : '') +
+    '<div class="c small">' + addrLines.concat(contact).join('<br/>') + '</div>' + gstLine +
     '<div class="hr"></div><div class="c b">' + title + '</div><div class="hr"></div>' +
     '<div class="row"><span>Bill no</span><span class="b">' + esc(inv.invoiceNo) + '</span></div>' +
     '<div class="row"><span>Date</span><span>' + esc(date) + '</span></div>' +
     '<div class="row"><span>Customer</span><span>' + esc(who) + '</span></div>' +
     '<div class="hr"></div>' + itemsHtml + '<div class="hr"></div>' +
-    '<div class="tot">' + rows.join('') + '</div>' + pay +
-    '<div class="hr"></div><div class="c small">Thank you! Visit again.</div></body></html>';
+    '<div class="tot">' + rows.join('') + '</div>' + pay + footer + '</body></html>';
   return html;
 }
 export function printInvoice(inv: Invoice, scope: PrintScope, paper: Paper) {
@@ -178,7 +194,5 @@ export function printInvoice(inv: Invoice, scope: PrintScope, paper: Paper) {
     setTimeout(() => {
       if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
     }, 60000);
-  }, 300);
+  }, 400);
 }
-
-

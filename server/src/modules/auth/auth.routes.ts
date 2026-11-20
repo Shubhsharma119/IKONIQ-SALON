@@ -63,4 +63,17 @@ router.post('/register', authenticate, authorize('OWNER', 'ADMIN'), async (req, 
     throw e;
   }
 });
+router.post('/change-password', authenticate, async (req, res) => {
+  const p = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(6) }).safeParse(req.body);
+  if (!p.success) return res.status(400).json({ message: 'New password must be at least 6 characters' });
+  const me = (req as any).user;
+  const u = await prisma.user.findUnique({ where: { id: me.id } });
+  if (!u || !(await bcrypt.compare(p.data.currentPassword, u.passwordHash))) {
+    return res.status(400).json({ message: 'Current password is incorrect' });
+  }
+  await prisma.user.update({ where: { id: me.id }, data: { passwordHash: await bcrypt.hash(p.data.newPassword, 10) } });
+  await prisma.auditLog.create({ data: { userId: me.id, action: 'CHANGE_PASSWORD', entity: 'User', entityId: String(me.id) } });
+  res.json({ ok: true });
+});
 export default router;
+

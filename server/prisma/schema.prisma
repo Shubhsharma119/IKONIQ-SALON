@@ -466,3 +466,9 @@ model SupplierPayment {
   createdAt   DateTime    @default(now())
   @@index([supplierId, createdAt])
 }
+model Setting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById Int?
+}

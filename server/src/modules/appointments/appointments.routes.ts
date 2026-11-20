@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { AppointmentStatus } from '@prisma/client';
 import { prisma } from '../../utils/prisma';
 import { authenticate, authorize } from '../../middleware/auth';
+import { checkOpen } from '../settings/settings.service';
 const router = Router();
 router.use(authenticate);
 const canWrite = authorize('OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST');
@@ -83,6 +84,10 @@ router.post('/', canWrite, async (req, res) => {
   }
   const t = await buildTimes(serviceIds, startAt);
   if (!t) return res.status(400).json({ message: 'One or more services are invalid or inactive' });
+  if (!isWalkIn) {
+    const closed = await checkOpen(prisma, startAt, t.endAt);
+    if (closed) return res.status(400).json({ message: closed });
+  }
   if (staffId && (await hasConflict(staffId, startAt, t.endAt))) {
     return res.status(409).json({ message: 'This staff member already has an appointment during that time' });
   }
@@ -136,6 +141,8 @@ router.put('/:id', canWrite, async (req, res) => {
       create: t.services.map((s) => ({ serviceId: s.id, price: s.price, durationMin: s.durationMin })),
     };
   }
+  const closed = await checkOpen(prisma, startAt, endAt);
+  if (closed) return res.status(400).json({ message: closed });
   if (staffId && (await hasConflict(staffId, startAt, endAt, id))) {
     return res.status(409).json({ message: 'This staff member already has an appointment during that time' });
   }
@@ -180,3 +187,6 @@ router.patch('/:id/status', canWrite, async (req, res) => {
   res.json(appt);
 });
 export default router;
+
+
+
