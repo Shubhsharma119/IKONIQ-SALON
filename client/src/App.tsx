@@ -13,6 +13,7 @@ import Memberships from './pages/Memberships';
 import MembershipsPage from './pages/MembershipsPage';
 import WalletPage from './pages/Wallet';
 import Expenses from './pages/Expenses';
+import Suppliers from './pages/Suppliers';
 import CustomerProfile from './pages/CustomerProfile';
 import Billing from './pages/Billing';
 function Protected() {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/customers/:id" element={<CustomerProfile />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/expenses" element={<Expenses />} />
+        <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/services" element={<Services />} />
         <Route path="/staff" element={<Staff />} />
         <Route path="/appointments" element={<Appointments />} />
@@ -43,6 +45,8 @@ export default function App() {
     </Routes>
   );
 }
+
+
 
 
 

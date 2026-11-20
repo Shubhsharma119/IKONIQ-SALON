@@ -14,7 +14,7 @@ const nav = [
   { to: '/services', label: 'Services', icon: Scissors, ready: true },
   { to: '/staff', label: 'Staff', icon: UserCog, ready: true },
   { to: '/inventory', label: 'Inventory', icon: Boxes, ready: true },
-  { to: '/suppliers', label: 'Suppliers', icon: Truck, ready: false },
+  { to: '/suppliers', label: 'Suppliers', icon: Truck, ready: true },
   { to: '/packages', label: 'Packages', icon: Gift, ready: true },
   { to: '/memberships', label: 'Memberships', icon: Crown, ready: true },
   { to: '/expenses', label: 'Expenses', icon: Wallet, ready: true },
@@ -98,6 +98,7 @@ export default function Layout() {
     </div>
   );
 }
+
 
 
 
