@@ -10,6 +10,10 @@ import Appointments from './pages/Appointments';
 import Inventory from './pages/Inventory';
 import Packages from './pages/Packages';
 import Memberships from './pages/Memberships';
+import MembershipsPage from './pages/MembershipsPage';
+import WalletPage from './pages/Wallet';
+import Expenses from './pages/Expenses';
+import CustomerProfile from './pages/CustomerProfile';
 import Billing from './pages/Billing';
 function Protected() {
   const { user, loading } = useAuth();
@@ -24,18 +28,26 @@ export default function App() {
       <Route element={<Protected />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/customers" element={<Customers />} />
+        <Route path="/customers/:id" element={<CustomerProfile />} />
+        <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/expenses" element={<Expenses />} />
         <Route path="/services" element={<Services />} />
         <Route path="/staff" element={<Staff />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/packages" element={<Packages />} />
-        <Route path="/memberships" element={<Memberships />} />
+        <Route path="/memberships" element={<MembershipsPage />} />
         <Route path="/billing" element={<Billing />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
+
+
+
+
+
 
 
 

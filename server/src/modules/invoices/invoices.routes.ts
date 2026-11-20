@@ -38,7 +38,7 @@ const itemSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('CUSTOM'), name: z.string().min(1), price: z.number().nonnegative(), qty: z.number().int().min(1).max(99).optional(), staffId: staffOpt }),
 ]);
 const paymentSchema = z.object({
-  mode: z.enum(['CASH', 'UPI', 'CARD', 'BANK']),
+  mode: z.enum(['CASH', 'UPI', 'CARD', 'BANK', 'WALLET']),
   amount: z.number().positive(),
   reference: z.string().optional(),
 });
@@ -222,6 +222,7 @@ router.get('/customer-info/:id', async (req, res) => {
     include: { service: { select: { id: true, name: true } } },
   });
   res.json({
+    walletBalance: Number((await prisma.customer.findUnique({ where: { id }, select: { walletBalance: true } }))?.walletBalance ?? 0),
     membership: best
       ? { name: best.name, discountPercent: Number(best.discountPercent), expiresAt: best.expiresAt }
       : null,
@@ -281,6 +282,18 @@ router.post('/', canBill, async (req, res) => {
         const paid = round2(payments.reduce((n, x) => n + x.amount, 0));
         if (paid > b.total + 0.001) throw new BillError('Payment is more than the bill total');
         if (!b.customer && paid < b.total - 0.001) throw new BillError('Guest bills must be paid in full');
+        const walletPay = round2(payments.filter((x) => x.mode === 'WALLET').reduce((s, x) => s + x.amount, 0));
+        if (walletPay > 0 && !b.customer) throw new BillError('E-wallet payment needs a customer');
+        let walletAfter: any = null;
+        if (walletPay > 0) {
+          const r = await tx.customer.updateMany({
+            where: { id: b.customer.id, walletBalance: { gte: walletPay } },
+            data: { walletBalance: { decrement: walletPay } },
+          });
+          if (r.count === 0) throw new BillError('Not enough E-wallet balance');
+          const w = await tx.customer.findUnique({ where: { id: b.customer.id } });
+          walletAfter = w!.walletBalance;
+        }
         const status: 'PAID' | 'PARTIAL' | 'UNPAID' = paid >= b.total ? 'PAID' : paid > 0 ? 'PARTIAL' : 'UNPAID';
         const key = fyKey(now);
         const c = await tx.invoiceCounter.upsert({
@@ -312,11 +325,24 @@ router.post('/', canBill, async (req, res) => {
             createdById: me.id,
             items: { create: b.lines },
             payments: {
-              create: payments.map((x) => ({ mode: x.mode, amount: x.amount, reference: x.reference, createdById: me.id })),
+              create: payments.map((x) => ({ mode: x.mode, amount: x.amount, reference: x.reference, createdById: me.id, balanceAfter: x.mode === 'WALLET' ? walletAfter : null })),
             },
           },
           include,
         });
+        if (walletPay > 0) {
+          await tx.walletTransaction.create({
+            data: {
+              customerId: b.customer.id,
+              type: 'PAYMENT',
+              amount: -walletPay,
+              balanceAfter: walletAfter,
+              invoiceId: invoice.id,
+              note: 'Bill ' + invoiceNo,
+              createdById: me.id,
+            },
+          });
+        }
         for (const l of b.lines) {
           if (l.itemType === 'PRODUCT') {
             const r = await tx.product.updateMany({
@@ -410,8 +436,30 @@ router.post('/:id/payments', canBill, async (req, res) => {
       if (inv.status === 'CANCELLED') throw new BillError('This invoice is cancelled');
       const due = round2(Number(inv.total) - Number(inv.paidAmount));
       if (p.data.amount > due + 0.001) throw new BillError('Amount is more than the due balance');
+      let walletAfter: any = null;
+      if (p.data.mode === 'WALLET') {
+        if (!inv.customerId) throw new BillError('E-wallet payment needs a customer');
+        const r = await tx.customer.updateMany({
+          where: { id: inv.customerId, walletBalance: { gte: p.data.amount } },
+          data: { walletBalance: { decrement: p.data.amount } },
+        });
+        if (r.count === 0) throw new BillError('Not enough E-wallet balance');
+        const w = await tx.customer.findUnique({ where: { id: inv.customerId } });
+        walletAfter = w!.walletBalance;
+        await tx.walletTransaction.create({
+          data: {
+            customerId: inv.customerId,
+            type: 'PAYMENT',
+            amount: -p.data.amount,
+            balanceAfter: walletAfter,
+            invoiceId: id,
+            note: 'Bill ' + inv.invoiceNo + ' (balance payment)',
+            createdById: me.id,
+          },
+        });
+      }
       await tx.payment.create({
-        data: { invoiceId: id, mode: p.data.mode, amount: p.data.amount, reference: p.data.reference, createdById: me.id },
+        data: { invoiceId: id, mode: p.data.mode, amount: p.data.amount, reference: p.data.reference, createdById: me.id, balanceAfter: walletAfter },
       });
       const paid = round2(Number(inv.paidAmount) + p.data.amount);
       const status: 'PAID' | 'PARTIAL' = paid >= Number(inv.total) - 0.001 ? 'PAID' : 'PARTIAL';
@@ -426,3 +474,10 @@ router.post('/:id/payments', canBill, async (req, res) => {
   }
 });
 export default router;
+
+
+
+
+
+
+

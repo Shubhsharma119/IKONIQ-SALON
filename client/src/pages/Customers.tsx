@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Plus, Search, Pencil, Power, Users } from 'lucide-react';
 import { api } from '../api';
+import { Link } from 'react-router-dom';
 import Modal from '../components/Modal';
 import Field, { inputCls } from '../components/Field';
 import { useToast } from '../components/Toast';
@@ -156,7 +157,7 @@ export default function Customers() {
                     <div className="h-9 w-9 shrink-0 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold">
                       {c.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="font-medium text-slate-800">{c.name}</div>
+                    <Link to={'/customers/' + c.id} className="font-medium text-indigo-700 hover:underline">{c.name}</Link>
                   </div>
                 </td>
                 <td className="px-5 py-3 text-slate-600">+91 {c.phone}</td>
@@ -252,3 +253,5 @@ export default function Customers() {
     </div>
   );
 }
+
+

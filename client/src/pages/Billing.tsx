@@ -5,6 +5,7 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { inputCls } from '../components/Field';
 import { useToast } from '../components/Toast';
+import WhatsAppShare from '../components/WhatsAppShare';
 import { buildReceipt, printInvoice, scopeTypes, scopeLabel, type Invoice, type PrintScope, type Paper } from '../printing';
 type Cust = { id: number; name: string; phone: string; isActive: boolean };
 type Svc = { id: number; name: string; price: string | number; durationMin: number; isActive: boolean; category: { name: string } };
@@ -13,7 +14,7 @@ type Pkg = { id: number; name: string; kind: string; price: string | number; val
 type Plan = { id: number; name: string; price: string | number; validityDays: number; discountPercent: string | number; isActive: boolean };
 type StaffRow = { id: number; name: string; role: string; isActive: boolean };
 type SessPkg = { id: number; name: string; sessionsTotal: number; sessionsUsed: number; expiresAt: string; services: { id: number; name: string }[] };
-type CustInfo = { membership: { name: string; discountPercent: number; expiresAt: string } | null; sessionPackages: SessPkg[] };
+type CustInfo = { membership: { name: string; discountPercent: number; expiresAt: string } | null; sessionPackages: SessPkg[]; walletBalance: number };
 type CartType = 'SERVICE' | 'PRODUCT' | 'PACKAGE' | 'MEMBERSHIP' | 'SESSION_USE' | 'CUSTOM';
 type CartItem = { key: number; type: CartType; refId: number; serviceId?: number; name: string; price: number; qty: number; staffId: number | null };
 type Preview = {
@@ -32,7 +33,7 @@ const statusTone: Record<string, string> = {
   UNPAID: 'bg-rose-50 text-rose-700', CANCELLED: 'bg-slate-100 text-slate-500',
 };
 const statusLabel: Record<string, string> = { PAID: 'Paid', PARTIAL: 'Partly paid', UNPAID: 'Unpaid', CANCELLED: 'Cancelled' };
-const modeLabel: Record<string, string> = { CASH: 'Cash', UPI: 'UPI', CARD: 'Card', BANK: 'Bank transfer' };
+const modeLabel: Record<string, string> = { CASH: 'Cash', UPI: 'UPI', CARD: 'Card', BANK: 'Bank transfer', WALLET: 'E-Wallet' };
 function toItem(c: CartItem) {
   switch (c.type) {
     case 'SERVICE': return { type: 'SERVICE', serviceId: c.refId, qty: c.qty, staffId: c.staffId };
@@ -159,6 +160,18 @@ function InvoiceView(props: { inv: Invoice; canBill: boolean; onClose: () => voi
               <div className="flex justify-between text-slate-600"><span>Paid</span><span>{inr(n(inv.paidAmount))}</span></div>
               {due > 0.004 && <div className="flex justify-between font-semibold text-rose-600"><span>Balance due</span><span>{inr(due)}</span></div>}
             </div>
+            {(() => {
+              const w = inv.payments.filter((p) => p.mode === 'WALLET');
+              if (w.length === 0) return null;
+              const used = w.reduce((s, p) => s + n(p.amount), 0);
+              const left = w[w.length - 1].balanceAfter;
+              return (
+                <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                  Paid from E-Wallet: {inr(used)}
+                  {left !== null && left !== undefined ? ' - Balance left: ' + inr(n(left)) : ''}
+                </div>
+              );
+            })()}
             {inv.payments.length > 0 && (
               <div className="rounded-xl border border-slate-200 p-3 text-sm">
                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Payments</div>
@@ -173,6 +186,8 @@ function InvoiceView(props: { inv: Invoice; canBill: boolean; onClose: () => voi
                 ))}
               </div>
             )}
+            <WhatsAppShare inv={inv} />
+
             {props.canBill && due > 0.004 && inv.status !== 'CANCELLED' && (
               <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
                 <div className="mb-2 text-sm font-medium text-slate-800">Receive payment</div>
@@ -182,6 +197,7 @@ function InvoiceView(props: { inv: Invoice; canBill: boolean; onClose: () => voi
                     <option value="UPI">UPI</option>
                     <option value="CARD">Card</option>
                     <option value="BANK">Bank transfer</option>
+                    {inv.customer && <option value="WALLET">E-Wallet</option>}
                   </select>
                   <input className={inputCls} type="number" min="0" step="any" placeholder="Amount" value={amt} onChange={(e) => setAmt(e.target.value)} />
                 </div>
@@ -446,6 +462,10 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
       return toast.show('error', 'Enter valid payment amounts.');
     }
     if (paid > total + 0.001) return toast.show('error', 'Payment is more than the bill total.');
+    const walletPaid = round2(pays.filter((p) => p.mode === 'WALLET').reduce((s, p) => s + (Number(p.amount) || 0), 0));
+    if (walletPaid > 0 && info && walletPaid > info.walletBalance + 0.001) {
+      return toast.show('error', 'Not enough E-Wallet balance. Available: ' + inr(info.walletBalance));
+    }
     if (!customer && paid < total - 0.001) return toast.show('error', 'Guest bills must be paid in full.');
     const payments = pays
       .filter((p) => Number(p.amount) > 0)
@@ -506,6 +526,11 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
                   </div>
                   <button onClick={clearCustomer} className="text-slate-400 hover:text-slate-700" aria-label="Change customer"><X size={16} /></button>
                 </div>
+                {info && (
+                  <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                    E-Wallet balance: {inr(info.walletBalance)}
+                  </div>
+                )}
                 {info && info.membership && (
                   <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     {info.membership.name}: {info.membership.discountPercent}% off on services (valid till{' '}
@@ -753,6 +778,7 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
                         <option value="UPI">UPI</option>
                         <option value="CARD">Card</option>
                         <option value="BANK">Bank</option>
+                      {customer && <option value="WALLET">E-Wallet</option>}
                       </select>
                       <input className={inputCls + ' col-span-4'} type="number" min="0" step="any" placeholder="Amount" value={p.amount} onChange={(e) => setPays((l) => l.map((x, k) => (k === i ? { ...x, amount: e.target.value } : x)))} />
                       <input className={inputCls + ' col-span-3'} placeholder="Ref" value={p.reference} onChange={(e) => setPays((l) => l.map((x, k) => (k === i ? { ...x, reference: e.target.value } : x)))} />
@@ -926,3 +952,11 @@ export default function Billing() {
     </div>
   );
 }
+
+
+
+
+
+
+
+

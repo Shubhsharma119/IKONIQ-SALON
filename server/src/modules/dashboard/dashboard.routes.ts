@@ -38,7 +38,10 @@ router.get('/', async (_req, res) => {
       where: { createdAt: { gte: weekStart }, status: { not: 'CANCELLED' as const } },
       select: { createdAt: true, total: true },
     }),
-    prisma.payment.aggregate({ where: { createdAt: { gte: start, lt: end } }, _sum: { amount: true } }),
+    Promise.all([
+      prisma.payment.aggregate({ where: { createdAt: { gte: start, lt: end }, mode: { not: 'WALLET' as const } }, _sum: { amount: true } }),
+      prisma.walletTransaction.aggregate({ where: { type: 'TOPUP' as const, createdAt: { gte: start, lt: end } }, _sum: { paidAmount: true } }),
+    ]).then(([pay, top]) => ({ _sum: { amount: Number(pay._sum.amount ?? 0) + Number(top._sum.paidAmount ?? 0) } })),
     prisma.invoiceItem.groupBy({
       by: ['staffId'],
       where: {
@@ -70,6 +73,15 @@ router.get('/', async (_req, res) => {
     const row = staffSales.find((x) => x.staffId === s.id);
     return { ...s, todayRevenue: round2(Number(row?._sum.amount ?? 0)) };
   });
+  const [expAgg, taxAgg] = await Promise.all([
+    prisma.expense.aggregate({ where: { expenseDate: { gte: start, lt: end }, isVoid: false }, _sum: { amount: true } }),
+    prisma.invoice.aggregate({
+      where: { createdAt: { gte: start, lt: end }, status: { not: 'CANCELLED' as const } },
+      _sum: { taxableAmount: true },
+    }),
+  ]);
+  const todayExpenses = round2(Number(expAgg._sum.amount ?? 0));
+  const todayNet = round2(Number(taxAgg._sum.taxableAmount ?? 0));
   const lowStock = stockRows
     .filter((p) => Number(p.stockQty) <= Number(p.lowStockLevel))
     .slice(0, 5)
@@ -85,10 +97,14 @@ router.get('/', async (_req, res) => {
     lowStock,
     todaySales: week[6].sales,
     todayCollection: round2(Number(collection._sum.amount ?? 0)),
-    todayExpenses: 0,
-    estimatedProfit: 0,
+    todayExpenses,
+    estimatedProfit: round2(todayNet - todayExpenses),
     todayAppointments,
     billingReady: true,
   });
 });
 export default router;
+
+
+
+

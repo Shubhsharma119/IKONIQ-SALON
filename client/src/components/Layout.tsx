@@ -10,13 +10,14 @@ const nav = [
   { to: '/customers', label: 'Customers', icon: Users, ready: true },
   { to: '/appointments', label: 'Appointments', icon: CalendarDays, ready: true },
   { to: '/billing', label: 'Billing / POS', icon: Receipt, ready: true },
+  { to: '/wallet', label: 'E-Wallet', icon: Wallet, ready: true },
   { to: '/services', label: 'Services', icon: Scissors, ready: true },
   { to: '/staff', label: 'Staff', icon: UserCog, ready: true },
   { to: '/inventory', label: 'Inventory', icon: Boxes, ready: true },
   { to: '/suppliers', label: 'Suppliers', icon: Truck, ready: false },
   { to: '/packages', label: 'Packages', icon: Gift, ready: true },
   { to: '/memberships', label: 'Memberships', icon: Crown, ready: true },
-  { to: '/expenses', label: 'Expenses', icon: Wallet, ready: false },
+  { to: '/expenses', label: 'Expenses', icon: Wallet, ready: true },
   { to: '/reports', label: 'Reports', icon: BarChart3, ready: false },
   { to: '/settings', label: 'Settings', icon: Settings, ready: false },
 ];
@@ -97,6 +98,8 @@ export default function Layout() {
     </div>
   );
 }
+
+
 
 
 

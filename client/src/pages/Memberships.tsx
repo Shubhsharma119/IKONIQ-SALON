@@ -136,7 +136,7 @@ export default function Memberships() {
         <Info size={18} className="mt-0.5 shrink-0" />
         <div>
           Memberships are given to customers from the Billing screen, so the payment is recorded on the bill.
-          Customers who hold an active membership will be listed here once Billing is ready.
+          Customers who hold a membership are listed below the plans.
         </div>
       </div>
       {loading && <div className="text-slate-400">Loading...</div>}
@@ -236,3 +236,4 @@ export default function Memberships() {
     </div>
   );
 }
+

@@ -7,7 +7,7 @@ export type InvItem = {
   price: string | number;
   amount: string | number;
 };
-export type InvPayment = { id: number; mode: string; amount: string | number; reference: string | null; createdAt: string };
+export type InvPayment = { id: number; mode: string; amount: string | number; reference: string | null; createdAt: string; balanceAfter?: string | number | null };
 export type Invoice = {
   id: number;
   invoiceNo: string;
@@ -45,7 +45,7 @@ export const scopeLabel: Record<PrintScope, string> = {
   packages: 'Packages',
   membership: 'Membership',
 };
-const modeText: Record<string, string> = { CASH: 'Cash', UPI: 'UPI', CARD: 'Card', BANK: 'Bank transfer' };
+const modeText: Record<string, string> = { CASH: 'Cash', UPI: 'UPI', CARD: 'Card', BANK: 'Bank transfer', WALLET: 'E-Wallet' };
 const n = (v: unknown) => Number(v) || 0;
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const money = (v: number) => r2(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -180,3 +180,5 @@ export function printInvoice(inv: Invoice, scope: PrintScope, paper: Paper) {
     }, 60000);
   }, 300);
 }
+
+

@@ -95,8 +95,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label="Today's sales" value={inr(s.todaySales)} icon={IndianRupee} tone="emerald" hint={pending} />
         <StatCard label="Collection" value={inr(s.todayCollection)} icon={Wallet} tone="blue" hint={pending} />
-        <StatCard label="Expenses" value={inr(s.todayExpenses)} icon={TrendingUp} tone="amber" hint="Expenses module ke baad data aayega" />
-        <StatCard label="Estimated profit" value={inr(s.estimatedProfit)} icon={TrendingUp} tone="violet" hint="Expenses module ke baad data aayega" />
+        <StatCard label="Expenses" value={inr(s.todayExpenses)} icon={TrendingUp} tone="amber" hint="Active expenses of today" />
+        <StatCard label="Estimated profit" value={inr(s.estimatedProfit)} icon={TrendingUp} tone="violet" hint="Sales (without GST) minus expenses" />
       </div>
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label="Customers" value={s.customers} icon={Users} tone="indigo" />
@@ -193,5 +193,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
 
 
