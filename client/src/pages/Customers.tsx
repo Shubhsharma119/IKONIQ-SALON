@@ -30,13 +30,14 @@ export default function Customers() {
   const [list, setList] = useState<Customer[]>([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
+  const [take, setTake] = useState(100);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
   function load(search: string) {
-    api<Customer[]>('/customers?q=' + encodeURIComponent(search))
+    api<Customer[]>('/customers?q=' + encodeURIComponent(search) + '&take=' + take)
       .then(setList)
       .catch((e) => toast.show('error', e.message))
       .finally(() => setLoading(false));
@@ -44,7 +45,7 @@ export default function Customers() {
   useEffect(() => {
     const t = setTimeout(() => load(q), 300);
     return () => clearTimeout(t);
-  }, [q]);
+  }, [q, take]);
   function openAdd() {
     setEditing(null);
     setForm(emptyForm);
@@ -191,6 +192,13 @@ export default function Customers() {
           </tbody>
         </table>
       </div>
+      {list.length >= take && (
+        <div className="text-center">
+          <button onClick={() => setTake(take + 100)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            Load more customers
+          </button>
+        </div>
+      )}
       {showForm && (
         <Modal
           title={editing ? 'Edit customer' : 'Add new customer'}
@@ -254,6 +262,10 @@ export default function Customers() {
     </div>
   );
 }
+
+
+
+
 
 
 

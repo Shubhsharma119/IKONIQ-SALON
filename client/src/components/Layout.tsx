@@ -23,6 +23,19 @@ const nav = [
   { to: '/reports', label: 'Reports', icon: BarChart3, ready: true },
   { to: '/settings', label: 'Settings', icon: Settings, ready: true },
 ];
+const MANAGERS = ['OWNER', 'ADMIN', 'MANAGER'];
+const BILLERS = ['OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST'];
+const access: Record<string, string[]> = {
+  '/billing': BILLERS,
+  '/wallet': BILLERS,
+  '/expenses': MANAGERS,
+  '/suppliers': MANAGERS,
+  '/settings': ['OWNER', 'ADMIN'],
+};
+function canSee(path: string, role?: string) {
+  const allowed = access[path];
+  return !allowed || allowed.includes(role || '');
+}
 export default function Layout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -33,7 +46,7 @@ export default function Layout() {
     <aside className="w-64 h-full bg-slate-900 text-slate-300 flex flex-col">
       <div className="px-6 py-5 text-xl font-bold text-white tracking-tight">SalonPro</div>
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        {nav.map((n) => {
+        {nav.filter((n) => canSee(n.to, user ? user.role : '')).map((n) => {
           const Icon = n.icon;
           if (!n.ready) {
             return (
@@ -103,6 +116,8 @@ export default function Layout() {
     </div>
   );
 }
+
+
 
 
 

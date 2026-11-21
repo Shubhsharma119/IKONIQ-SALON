@@ -267,6 +267,9 @@ model Invoice {
   notes              String?
   branchId           Int?
   createdById        Int?
+  cancelReason String?
+  cancelledAt DateTime?
+  cancelledById Int?
   createdAt          DateTime      @default(now())
   items              InvoiceItem[]
   payments           Payment[]
@@ -475,4 +478,5 @@ model Setting {
   updatedAt   DateTime @updatedAt
   updatedById Int?
 }
+
 

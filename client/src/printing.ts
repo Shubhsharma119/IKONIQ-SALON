@@ -80,7 +80,7 @@ export function buildReceipt(inv: Invoice, scope: PrintScope, paper: Paper, prev
   const date = new Date(inv.createdAt).toLocaleString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
   });
-  const title = (inv.isGst ? 'TAX INVOICE' : 'BILL') + (scope === 'full' ? '' : ' - ' + scopeLabel[scope].toUpperCase());
+  const title = (inv.status === 'CANCELLED' ? 'CANCELLED ' : '') + (inv.isGst ? 'TAX INVOICE' : 'BILL') + (scope === 'full' ? '' : ' - ' + scopeLabel[scope].toUpperCase());
   const locality = [SALON.city, SALON.state].filter(Boolean).join(', ') + (SALON.pincode ? ' - ' + SALON.pincode : '');
   const addrLines = [SALON.address, locality].filter((x) => x && x.trim()).map(esc);
   const contact = [SALON.phone ? 'Ph: ' + SALON.phone : '', SALON.email].filter(Boolean).map(esc);
@@ -196,3 +196,4 @@ export function printInvoice(inv: Invoice, scope: PrintScope, paper: Paper) {
     }, 60000);
   }, 400);
 }
+

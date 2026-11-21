@@ -14,6 +14,14 @@ const customerSchema = z.object({
   isActive: z.boolean().optional(),
 });
 const canWrite = authorize('OWNER', 'ADMIN', 'MANAGER', 'RECEPTIONIST');
+async function phoneMsg(phone: unknown) {
+  const c = phone ? await prisma.customer.findUnique({ where: { phone: String(phone) } }) : null;
+  if (c && !c.isActive) {
+    return 'This mobile number belongs to a deactivated customer (' + c.name + '). Open Customers and activate that customer instead.';
+  }
+  if (c) return 'This mobile number is already registered for ' + c.name + '.';
+  return 'Phone already registered';
+}
 router.get('/', async (req, res) => {
   const q = String(req.query.q || '').trim();
   const customers = await prisma.customer.findMany({
@@ -21,7 +29,7 @@ router.get('/', async (req, res) => {
       ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] }
       : {},
     orderBy: { createdAt: 'desc' },
-    take: 100,
+    take: Math.min(Number(req.query.take) || 100, 1000),
   });
   res.json(customers);
 });
@@ -39,7 +47,7 @@ router.post('/', canWrite, async (req, res) => {
     });
     res.status(201).json(c);
   } catch (e: any) {
-    if (e.code === 'P2002') return res.status(409).json({ message: 'Phone already registered' });
+    if (e.code === 'P2002') return res.status(409).json({ message: await phoneMsg((req.body as any)?.phone) });
     throw e;
   }
 });
@@ -51,10 +59,13 @@ router.put('/:id', canWrite, async (req, res) => {
     res.json(c);
   } catch (e: any) {
     if (e.code === 'P2025') return res.status(404).json({ message: 'Customer not found' });
-    if (e.code === 'P2002') return res.status(409).json({ message: 'Phone already registered' });
+    if (e.code === 'P2002') return res.status(409).json({ message: await phoneMsg((req.body as any)?.phone) });
     throw e;
   }
 });
 export default router;
+
+
+
 
 

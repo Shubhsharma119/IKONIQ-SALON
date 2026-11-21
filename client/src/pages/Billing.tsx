@@ -6,6 +6,7 @@ import { useAuth } from '../auth';
 import { inputCls } from '../components/Field';
 import { useToast } from '../components/Toast';
 import WhatsAppShare from '../components/WhatsAppShare';
+import CancelBillSection from '../components/CancelBill';
 import { buildReceipt, printInvoice, scopeTypes, scopeLabel, type Invoice, type PrintScope, type Paper } from '../printing';
 import { SALON } from '../salon';
 type Cust = { id: number; name: string; phone: string; isActive: boolean };
@@ -159,7 +160,7 @@ function InvoiceView(props: { inv: Invoice; canBill: boolean; onClose: () => voi
               )}
               <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold text-slate-800"><span>Total</span><span>{inr(n(inv.total))}</span></div>
               <div className="flex justify-between text-slate-600"><span>Paid</span><span>{inr(n(inv.paidAmount))}</span></div>
-              {due > 0.004 && <div className="flex justify-between font-semibold text-rose-600"><span>Balance due</span><span>{inr(due)}</span></div>}
+              {due > 0.004 && inv.status !== 'CANCELLED' && <div className="flex justify-between font-semibold text-rose-600"><span>Balance due</span><span>{inr(due)}</span></div>}
             </div>
             {(() => {
               const w = inv.payments.filter((p) => p.mode === 'WALLET');
@@ -187,7 +188,9 @@ function InvoiceView(props: { inv: Invoice; canBill: boolean; onClose: () => voi
                 ))}
               </div>
             )}
-            <WhatsAppShare inv={inv} />
+            <CancelBillSection inv={inv} onUpdated={props.onUpdated} />
+
+            {inv.status !== 'CANCELLED' && <WhatsAppShare inv={inv} />}
 
             {props.canBill && due > 0.004 && inv.status !== 'CANCELLED' && (
               <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
@@ -819,6 +822,7 @@ export default function Billing() {
   const [q, setQ] = useState('');
   const [range, setRange] = useState<'today' | 'week' | 'all'>('today');
   const [loading, setLoading] = useState(true);
+  const [take, setTake] = useState(200);
   const [open, setOpen] = useState<Invoice | null>(null);
   function load() {
     const qs = new URLSearchParams();
@@ -837,6 +841,7 @@ export default function Billing() {
       qs.set('from', f.toISOString());
       qs.set('to', e.toISOString());
     }
+    qs.set('take', String(take));
     api<Invoice[]>('/invoices?' + qs.toString())
       .then(setList)
       .catch((err) => toast.show('error', err.message))
@@ -846,7 +851,7 @@ export default function Billing() {
     if (view !== 'list') return;
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
-  }, [q, range, view]);
+  }, [q, range, view, take]);
   function leaveNew() {
     setParams({});
     setView('list');
@@ -929,7 +934,7 @@ export default function Billing() {
                   <td className="px-5 py-3 text-slate-700">{i.customer ? i.customer.name : i.guestName || 'Walk-in guest'}</td>
                   <td className="hidden px-5 py-3 text-slate-500 lg:table-cell">{kinds}</td>
                   <td className="px-5 py-3 font-semibold text-slate-800">{inr(n(i.total))}</td>
-                  <td className="hidden px-5 py-3 text-slate-600 md:table-cell">{d > 0.004 ? inr(d) : '-'}</td>
+                  <td className="hidden px-5 py-3 text-slate-600 md:table-cell">{d > 0.004 && i.status !== 'CANCELLED' ? inr(d) : '-'}</td>
                   <td className="px-5 py-3">
                     <span className={'rounded-full px-2.5 py-0.5 text-xs font-medium ' + statusTone[i.status]}>{statusLabel[i.status]}</span>
                   </td>
@@ -939,6 +944,13 @@ export default function Billing() {
           </tbody>
         </table>
       </div>
+      {list.length >= take && (
+        <div className="text-center">
+          <button onClick={() => setTake(take + 200)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            Load more bills
+          </button>
+        </div>
+      )}
       {open && (
         <InvoiceView
           inv={open}
@@ -953,6 +965,14 @@ export default function Billing() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 
 

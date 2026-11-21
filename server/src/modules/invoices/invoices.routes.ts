@@ -184,7 +184,7 @@ router.get('/', async (req, res) => {
   if (req.query.from && req.query.to) {
     where.createdAt = { gte: new Date(String(req.query.from)), lt: new Date(String(req.query.to)) };
   }
-  res.json(await prisma.invoice.findMany({ where, orderBy: { createdAt: 'desc' }, take: 200, include }));
+  res.json(await prisma.invoice.findMany({ where, orderBy: { createdAt: 'desc' }, take: Math.min(Number(req.query.take) || 200, 2000), include }));
 });
 router.get('/from-appointment/:id', async (req, res) => {
   const a = await prisma.appointment.findUnique({
@@ -475,7 +475,148 @@ router.post('/:id/payments', canBill, async (req, res) => {
     return fail(res, e);
   }
 });
-export default router;
+const canCancel = authorize('OWNER', 'ADMIN', 'MANAGER');
+router.post('/:id/cancel', canCancel, async (req, res) => {
+  const p = z
+    .object({
+      reason: z.string().min(3),
+      refundMode: z.enum(['CASH', 'UPI', 'CARD', 'BANK', 'WALLET']).optional(),
+      refundReference: z.string().optional(),
+    })
+    .safeParse(req.body);
+  if (!p.success) return res.status(400).json({ message: 'Enter a reason (at least 3 letters)' });
+  const id = Number(req.params.id);
+  const me = (req as any).user;
+  const refundMode = p.data.refundMode ?? 'CASH';
+  const refundRef = p.data.refundReference ? p.data.refundReference.trim() : '';
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const inv = await tx.invoice.findUnique({ where: { id }, include: { items: true, payments: true } });
+        if (!inv) throw new BillError('Invoice not found', 404);
+        if (inv.status === 'CANCELLED') throw new BillError('This bill is already cancelled');
+        if (refundMode === 'WALLET' && !inv.customerId) {
+          throw new BillError('A guest bill cannot be refunded to an E-Wallet');
+        }
+        const bought = await tx.customerPackage.findMany({ where: { invoiceId: id }, include: { uses: true } });
+        for (const cp of bought) {
+          if (cp.sessionsUsed > 0 || cp.uses.length > 0) {
+            throw new BillError('Cannot cancel: sessions of ' + cp.name + ' bought on this bill are already used.');
+          }
+        }
+        if (inv.customerId) {
+          const mems = await tx.customerMembership.count({ where: { invoiceId: id } });
+          if (mems > 0) {
+            const later = await tx.invoice.findFirst({
+              where: {
+                customerId: inv.customerId,
+                id: { not: id },
+                status: { not: 'CANCELLED' as const },
+                createdAt: { gt: inv.createdAt },
+                membershipDiscount: { gt: 0 },
+              },
+            });
+            if (later) {
+              throw new BillError('Cannot cancel: the membership from this bill was already used for a discount on bill ' + later.invoiceNo + '.');
+            }
+          }
+        }
+        const uses = await tx.sessionUse.findMany({ where: { invoiceId: id } });
+        for (const u of uses) {
+          await tx.customerPackage.updateMany({
+            where: { id: u.customerPackageId, sessionsUsed: { gt: 0 } },
+            data: { sessionsUsed: { decrement: 1 } },
+          });
+        }
+        await tx.sessionUse.deleteMany({ where: { invoiceId: id } });
+        await tx.customerPackage.deleteMany({ where: { invoiceId: id } });
+        await tx.customerMembership.deleteMany({ where: { invoiceId: id } });
+        for (const it of inv.items) {
+          if (it.itemType === 'PRODUCT' && it.productId) {
+            const qty = Number(it.qty);
+            const exists = await tx.product.findUnique({ where: { id: it.productId } });
+            if (!exists) continue;
+            const after = await tx.product.update({
+              where: { id: it.productId },
+              data: { stockQty: { increment: qty } },
+            });
+            await tx.stockMovement.create({
+              data: {
+                productId: it.productId,
+                type: 'IN',
+                qty,
+                balanceAfter: after.stockQty,
+                note: 'Cancelled bill ' + inv.invoiceNo,
+                createdById: me.id,
+              },
+            });
+          }
+        }
+        const paidRows = inv.payments.filter((x) => Number(x.amount) > 0);
+        const walletPaid = round2(paidRows.filter((x) => x.mode === 'WALLET').reduce((s, x) => s + Number(x.amount), 0));
+        const otherPaid = round2(paidRows.filter((x) => x.mode !== 'WALLET').reduce((s, x) => s + Number(x.amount), 0));
+        const toWallet = round2(walletPaid + (refundMode === 'WALLET' ? otherPaid : 0));
+        if (toWallet > 0.004) {
+          const c = await tx.customer.update({
+            where: { id: inv.customerId! },
+            data: { walletBalance: { increment: toWallet } },
+          });
+          await tx.walletTransaction.create({
+            data: {
+              customerId: inv.customerId!,
+              type: 'ADJUSTMENT',
+              amount: toWallet,
+              balanceAfter: c.walletBalance,
+              invoiceId: id,
+              note: 'Refund: cancelled bill ' + inv.invoiceNo,
+              createdById: me.id,
+            },
+          });
+          await tx.payment.create({
+            data: {
+              invoiceId: id,
+              mode: 'WALLET',
+              amount: -toWallet,
+              reference: 'Refund to E-Wallet',
+              balanceAfter: c.walletBalance,
+              createdById: me.id,
+            },
+          });
+        }
+        if (refundMode !== 'WALLET' && otherPaid > 0.004) {
+          await tx.payment.create({
+            data: {
+              invoiceId: id,
+              mode: refundMode,
+              amount: -otherPaid,
+              reference: 'Refund' + (refundRef ? ' ' + refundRef : ''),
+              createdById: me.id,
+            },
+          });
+        }
+        await tx.invoice.update({
+          where: { id },
+          data: {
+            status: 'CANCELLED',
+            appointmentId: null,
+            cancelReason: p.data.reason.trim(),
+            cancelledAt: new Date(),
+            cancelledById: me.id,
+          },
+        });
+      },
+      { maxWait: 5000, timeout: 30000 }
+    );
+    await prisma.auditLog.create({
+      data: { userId: me.id, action: 'CANCEL_INVOICE', entity: 'Invoice', entityId: String(id) },
+    });
+    res.json(await prisma.invoice.findUnique({ where: { id }, include }));
+  } catch (e) {
+    return fail(res, e);
+  }
+});export default router;
+
+
 
 
 
