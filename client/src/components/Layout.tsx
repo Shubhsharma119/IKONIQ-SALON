@@ -20,7 +20,7 @@ const nav = [
   { to: '/packages', label: 'Packages', icon: Gift, ready: true },
   { to: '/memberships', label: 'Memberships', icon: Crown, ready: true },
   { to: '/expenses', label: 'Expenses', icon: Wallet, ready: true },
-  { to: '/reports', label: 'Reports', icon: BarChart3, ready: false },
+  { to: '/reports', label: 'Reports', icon: BarChart3, ready: true },
   { to: '/settings', label: 'Settings', icon: Settings, ready: true },
 ];
 export default function Layout() {
