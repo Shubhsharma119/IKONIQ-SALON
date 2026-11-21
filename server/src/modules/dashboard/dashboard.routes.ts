@@ -17,7 +17,7 @@ router.get('/', async (_req, res) => {
   ] = await Promise.all([
     prisma.customer.count({ where: { isActive: true } }),
     prisma.customer.count({ where: { createdAt: { gte: start } } }),
-    prisma.service.count({ where: { isActive: true } }),
+    prisma.service.count({ where: { isActive: true, isDeleted: false } }),
     prisma.user.count({ where: { isActive: true } }),
     prisma.customer.findMany({
       orderBy: { createdAt: 'desc' },
@@ -104,6 +104,7 @@ router.get('/', async (_req, res) => {
   });
 });
 export default router;
+
 
 
 
