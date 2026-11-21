@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Plus, Search, Pencil, Power, Users } from 'lucide-react';
+import { Plus, Search, Pencil, Power, Users, History } from 'lucide-react';
 import { api } from '../api';
 import { Link } from 'react-router-dom';
 import Modal from '../components/Modal';
@@ -177,6 +177,7 @@ export default function Customers() {
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex justify-end gap-1 text-slate-400">
+                    <Link to={'/customers/' + c.id} title="View history" className="rounded-lg p-2 hover:bg-emerald-50 hover:text-emerald-600"><History size={16} /></Link>
                     <button onClick={() => openEdit(c)} title="Edit" className="rounded-lg p-2 hover:bg-indigo-50 hover:text-indigo-600">
                       <Pencil size={16} />
                     </button>
@@ -253,5 +254,7 @@ export default function Customers() {
     </div>
   );
 }
+
+
 
 

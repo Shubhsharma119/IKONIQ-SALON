@@ -470,7 +470,7 @@ async function dues(): Promise<ReportData> {
 async function walletReport(r: Range): Promise<ReportData> {
   const tx = await prisma.walletTransaction.findMany({
     where: { createdAt: { gte: r.from, lt: r.to } },
-    select: { customerId: true, type: true, amount: true },
+    select: { customerId: true, type: true, amount: true, paidAmount: true, bonusAmount: true },
   });
   const agg = new Map<number, Row>();
   for (const x of tx) {
@@ -480,9 +480,10 @@ async function walletReport(r: Range): Promise<ReportData> {
       agg.set(x.customerId, o);
     }
     const a = num(x.amount);
-    if (x.type === 'TOPUP') o.added += a;
-    else if (x.type === 'BONUS') o.bonus += a;
-    else if (x.type === 'SPEND') o.used += -a;
+    if (x.type === 'TOPUP') {
+      o.added += num(x.paidAmount);
+      o.bonus += num(x.bonusAmount);
+    } else if (x.type === 'PAYMENT') o.used += -a;
     else o.adjust += a;
   }
   const custs = await prisma.customer.findMany({
@@ -797,3 +798,4 @@ export async function runReport(id: string, q: any): Promise<ReportData> {
     default: throw new ReportError('Report not found', 404);
   }
 }
+
