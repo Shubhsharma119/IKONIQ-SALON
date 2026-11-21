@@ -8,7 +8,7 @@ const KEYS = ['salonName', 'address', 'phone', 'gstin', 'billFooter'];
 router.get('/', async (_req, res) => {
   const rows = await prisma.setting.findMany({ where: { key: { in: KEYS } } });
   const out: Record<string, string> = {};
-  for (const r of rows) out[r.key] = r.value;
+  for (const r of rows) out[r.key] = typeof r.value === 'string' ? r.value : '';
   res.json(out);
 });
 router.put('/', authorize('OWNER', 'ADMIN'), async (req, res) => {
@@ -43,3 +43,4 @@ router.put('/', authorize('OWNER', 'ADMIN'), async (req, res) => {
   res.json(d);
 });
 export default router;
+
