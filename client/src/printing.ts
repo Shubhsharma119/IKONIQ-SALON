@@ -7,7 +7,7 @@ export type InvItem = {
   price: string | number;
   amount: string | number;
 };
-export type InvPayment = { id: number; mode: string; amount: string | number; reference: string | null; createdAt: string };
+export type InvPayment = { id: number; mode: string; amount: string | number; reference: string | null; createdAt: string; balanceAfter?: string | number | null };
 export type Invoice = {
   id: number;
   invoiceNo: string;
@@ -196,4 +196,5 @@ export function printInvoice(inv: Invoice, scope: PrintScope, paper: Paper) {
     }, 60000);
   }, 400);
 }
+
 
