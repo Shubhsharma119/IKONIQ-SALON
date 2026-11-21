@@ -105,6 +105,38 @@ router.get('/customer/:id', async (req, res) => {
     memberships: memberships.map((m) => ({ ...m, invoiceNo: iNo(m.invoiceId) })),
   });
 });
+router.get('/customer/:id/appointments', async (req, res) => {
+  const id = Number(req.params.id);
+  const rows = await prisma.appointment.findMany({
+    where: { customerId: id },
+    orderBy: { startAt: 'desc' },
+    take: 200,
+    include: { services: { include: { service: { select: { id: true, name: true } } } } },
+  });
+  const sids: number[] = [];
+  for (const a of rows) if (a.staffId != null && !sids.includes(a.staffId)) sids.push(a.staffId);
+  const aids = rows.map((a) => a.id);
+  const [staff, bills] = await Promise.all([
+    sids.length
+      ? prisma.user.findMany({ where: { id: { in: sids } }, select: { id: true, name: true } })
+      : Promise.resolve([] as { id: number; name: string }[]),
+    aids.length
+      ? prisma.invoice.findMany({ where: { appointmentId: { in: aids } }, select: { appointmentId: true, invoiceNo: true } })
+      : Promise.resolve([] as { appointmentId: number | null; invoiceNo: string }[]),
+  ]);
+  res.json(
+    rows.map((a) => ({
+      id: a.id,
+      startAt: a.startAt,
+      status: a.status,
+      notes: a.notes,
+      staffName: (staff.find((s) => s.id === a.staffId) || { name: null }).name,
+      invoiceNo: (bills.find((b) => b.appointmentId === a.id) || { invoiceNo: null }).invoiceNo,
+      services: a.services.map((s) => s.service.name),
+    }))
+  );
+});
+
 router.get('/memberships', async (req, res) => {
   const status = String(req.query.status || 'active');
   const now = new Date();
@@ -137,3 +169,4 @@ router.get('/memberships', async (req, res) => {
   );
 });
 export default router;
+
