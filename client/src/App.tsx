@@ -18,6 +18,7 @@ import CustomerProfile from './pages/CustomerProfile';
 import Billing from './pages/Billing';
 import SettingsPage from './pages/Settings';
 import Reports from './pages/Reports';
+import ReportsHub from './pages/ReportsHub';
 function Protected() {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-8 text-slate-500">Loading...</div>;
@@ -43,12 +44,13 @@ export default function App() {
         <Route path="/memberships" element={<MembershipsPage />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/reports" element={<Reports />} />
+        <Route path="/reports" element={<ReportsHub />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
+
 
 
 
