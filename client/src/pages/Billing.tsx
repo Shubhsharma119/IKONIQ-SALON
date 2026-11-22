@@ -4,6 +4,7 @@ import { Receipt, Plus, Minus, Trash2, Search, X, Printer } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { inputCls } from '../components/Field';
+import QuickAddCustomer from '../components/QuickAddCustomer';
 import { useToast } from '../components/Toast';
 import WhatsAppShare from '../components/WhatsAppShare';
 import CancelBillSection from '../components/CancelBill';
@@ -273,6 +274,7 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
   const [guestName, setGuestName] = useState('');
   const [custQ, setCustQ] = useState('');
   const [custResults, setCustResults] = useState<Cust[]>([]);
+  const [showAddCust, setShowAddCust] = useState(false);
   const [info, setInfo] = useState<CustInfo | null>(null);
   const [appointmentId, setAppointmentId] = useState<number | null>(null);
   const [tab, setTab] = useState<'SERVICE' | 'PRODUCT' | 'PACKAGE' | 'MEMBERSHIP' | 'SESSION' | 'CUSTOM'>('SERVICE');
@@ -519,6 +521,7 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
+          {showAddCust && (<QuickAddCustomer initial={custQ} onClose={() => setShowAddCust(false)} onCreated={(c) => { setShowAddCust(false); chooseCustomer(c); }} />)}
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-2 text-sm font-semibold text-slate-800">Customer</div>
             {customer ? (
@@ -574,6 +577,7 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
                     ))}
                   </ul>
                 )}
+                <button type="button" onClick={() => setShowAddCust(true)} className="mr-4 mt-2 text-sm font-medium text-indigo-600 hover:underline">+ Add new customer</button>
                 <button type="button" onClick={chooseGuest} className="mt-2 text-sm font-medium text-indigo-600 hover:underline">
                   Or continue as Walk-in guest
                 </button>
@@ -965,6 +969,10 @@ export default function Billing() {
     </div>
   );
 }
+
+
+
+
 
 
 
