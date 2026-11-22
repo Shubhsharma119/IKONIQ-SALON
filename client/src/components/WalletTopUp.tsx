@@ -4,6 +4,19 @@ import { useAuth } from '../auth';
 import Modal from './Modal';
 import Field, { inputCls } from './Field';
 import { useToast } from './Toast';
+import WalletReceiptModal from './WalletReceiptModal';
+type TopUpTransaction = {
+  id: number;
+  type: string;
+  amount: number | string;
+  paidAmount: number | string;
+  bonusAmount: number | string;
+  balanceAfter: number | string;
+  mode: string | null;
+  reference: string | null;
+  note: string | null;
+  createdAt: string;
+};
 export type Offer = {
   id: number;
   name: string;
@@ -29,6 +42,7 @@ export default function WalletTopUp(props: {
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [receiptTx, setReceiptTx] = useState<TopUpTransaction | null>(null);
   useEffect(() => {
     api<Offer[]>('/wallet/offers')
       .then((o) => setOffers(o.filter((x) => x.isActive)))
@@ -52,15 +66,31 @@ export default function WalletTopUp(props: {
     const body = offer ? { offerId: offer.id, ...common } : { paidAmount: paid, bonusAmount: extra, ...common };
     setBusy(true);
     try {
-      await api('/wallet/customer/' + props.customer.id + '/topup', { method: 'POST', body: JSON.stringify(body) });
+      const result = await api<{ txn: TopUpTransaction; balance: number }>(
+        '/wallet/customer/' + props.customer.id + '/topup',
+        { method: 'POST', body: JSON.stringify(body) }
+      );
       toast.show('success', inr(credit) + ' added to the E-Wallet successfully.');
       props.onDone();
-      props.onClose();
+      setReceiptTx(result.txn);
     } catch (err: any) {
       toast.show('error', err.message === 'Invalid data' ? 'Please check the details and try again.' : err.message);
     } finally {
       setBusy(false);
     }
+  }
+  if (receiptTx) {
+    return (
+      <WalletReceiptModal
+        tx={receiptTx}
+        all={[]}
+        customer={props.customer}
+        onClose={() => {
+          setReceiptTx(null);
+          props.onClose();
+        }}
+      />
+    );
   }
   const card = (on: boolean) =>
     'rounded-xl border p-3 text-left ' +

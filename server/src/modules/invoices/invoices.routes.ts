@@ -268,6 +268,17 @@ router.post('/', canBill, async (req, res) => {
   const d = p.data;
   const me = (req as any).user;
   const payments = d.payments ?? [];
+  const needStaff = d.items.filter((i: any) => i.type !== 'MEMBERSHIP');
+  if (needStaff.some((i: any) => !i.staffId)) {
+    return res.status(400).json({ message: 'Select who served each item (Served by).' });
+  }
+  const staffIds = Array.from(new Set(needStaff.map((i: any) => Number(i.staffId))));
+  if (staffIds.length > 0) {
+    const okCount = await prisma.user.count({ where: { id: { in: staffIds }, isActive: true } });
+    if (okCount !== staffIds.length) {
+      return res.status(400).json({ message: 'A selected staff member is not available.' });
+    }
+  }
   try {
     const inv = await prisma.$transaction(
       async (tx) => {
@@ -615,6 +626,7 @@ router.post('/:id/cancel', canCancel, async (req, res) => {
     return fail(res, e);
   }
 });export default router;
+
 
 
 

@@ -71,7 +71,12 @@ export function sectionTotals(inv: Invoice, scope: PrintScope) {
   const gst = inv.isGst ? (taxable * n(inv.gstRate)) / 100 : 0;
   return { items, subtotal: amt, membership: m, discount: d, taxable, gst, total: taxable + gst };
 }
-export function buildReceipt(inv: Invoice, scope: PrintScope, paper: Paper, preview = false) {
+export function buildReceipt(inv0: Invoice, scope: PrintScope, paper: Paper, preview = false) {
+  const wp = inv0.payments.filter((p) => p.mode === 'WALLET' && p.balanceAfter !== null && p.balanceAfter !== undefined);
+  const inv: Invoice =
+    wp.length > 0 && (inv0.walletBalanceAfter === null || inv0.walletBalanceAfter === undefined)
+      ? { ...inv0, walletBalanceAfter: wp[wp.length - 1].balanceAfter as number }
+      : inv0;
   const t = sectionTotals(inv, scope);
   const a4 = paper === 'A4';
   const w = paper === '80' ? '80mm' : paper === '58' ? '58mm' : '210mm';
@@ -196,5 +201,6 @@ export function printInvoice(inv: Invoice, scope: PrintScope, paper: Paper) {
     }, 60000);
   }, 400);
 }
+
 
 

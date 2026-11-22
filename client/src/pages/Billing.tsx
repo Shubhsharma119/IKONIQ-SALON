@@ -454,6 +454,7 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
   const due = round2(total - paid);
   async function save() {
     if (cart.length === 0) return toast.show('error', 'Add at least one item to the bill.');
+    if (cart.some((c) => c.type !== 'MEMBERSHIP' && !c.staffId)) return toast.show('error', 'Select who served each item (Served by).');
     if (!customer && !guest) return toast.show('error', 'Select a customer or choose Walk-in guest.');
     if (!preview) return toast.show('error', previewErr || 'The bill total is not ready yet.');
     if (isGst && (isNaN(Number(gstRate)) || Number(gstRate) < 0 || Number(gstRate) > 28)) {
@@ -688,7 +689,24 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
         </div>
         <div className="lg:col-span-2">
           <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4">
-            <div className="text-sm font-semibold text-slate-800">Bill items ({cart.length})</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-semibold text-slate-800">Bill items ({cart.length})</div>
+              {cart.length > 1 && (
+                <select
+                  className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600"
+                  value=""
+                  onChange={(e) => {
+                    const v = e.target.value ? Number(e.target.value) : 0;
+                    if (v) setCart((l) => l.map((x) => (x.type === 'MEMBERSHIP' ? x : { ...x, staffId: v })));
+                  }}
+                >
+                  <option value="">Set served by for all</option>
+                  {staff.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
             {cart.length === 0 && <div className="py-4 text-center text-sm text-slate-400">No items added yet.</div>}
             <div className="divide-y divide-slate-100">
               {cart.map((c) => (
@@ -710,11 +728,11 @@ function NewBill(props: { apptId: number | null; onCancel: () => void; onDone: (
                     )}
                     {c.type !== 'MEMBERSHIP' && (
                       <select
-                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600"
+                        className={'min-w-0 flex-1 rounded-lg border px-2 py-1 text-xs ' + (c.staffId ? 'border-slate-300 text-slate-600' : 'border-rose-400 bg-rose-50 text-rose-700')}
                         value={c.staffId ?? ''}
                         onChange={(e) => setCart((l) => l.map((x) => (x.key === c.key ? { ...x, staffId: e.target.value ? Number(e.target.value) : null } : x)))}
                       >
-                        <option value="">Served by (optional)</option>
+                        <option value="">Served by *</option>
                         {staff.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
@@ -969,6 +987,10 @@ export default function Billing() {
     </div>
   );
 }
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+﻿import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Wallet as WalletIcon, Plus, Pencil, Power, Search } from 'lucide-react';
 import { api } from '../api';
@@ -6,7 +6,9 @@ import { useAuth } from '../auth';
 import Modal from '../components/Modal';
 import Field, { inputCls } from '../components/Field';
 import WalletTopUp, { type Offer } from '../components/WalletTopUp';
+import WalletReceiptModal from '../components/WalletReceiptModal';
 import { useToast } from '../components/Toast';
+
 type Balances = {
   totalBalance: number;
   customersWithBalance: number;
@@ -15,6 +17,24 @@ type Balances = {
   customers: { id: number; name: string; phone: string; walletBalance: string | number }[];
 };
 type Cust = { id: number; name: string; phone: string; isActive: boolean };
+type WalletTxn = {
+  id: number;
+  type: string;
+  amount: number | string;
+  paidAmount?: number | string | null;
+  bonusAmount?: number | string | null;
+  balanceAfter: number | string;
+  mode: string | null;
+  reference: string | null;
+  note: string | null;
+  createdAt: string;
+  invoiceNo?: string | null;
+};
+type WalletHistory = {
+  customer: { id: number; name: string; phone: string };
+  balance: number;
+  transactions: WalletTxn[];
+};
 const r2 = (x: number) => Math.round(x * 100) / 100;
 const inr = (x: number) => '\u20B9' + x.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export default function WalletPage() {
@@ -28,6 +48,20 @@ export default function WalletPage() {
   const [topCust, setTopCust] = useState<Cust | null>(null);
   const [form, setForm] = useState<{ id: number | null; name: string; pay: string; credit: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState<WalletHistory | null>(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [receiptTx, setReceiptTx] = useState<WalletTxn | null>(null);
+  async function openHistory(customerId: number) {
+    setHistoryBusy(true);
+    try {
+      const result = await api<WalletHistory>('/wallet/customer/' + customerId);
+      setHistory(result);
+    } catch (err: any) {
+      toast.show('error', err.message || 'Unable to load wallet history.');
+    } finally {
+      setHistoryBusy(false);
+    }
+  }
   function load() {
     Promise.all([api<Balances>('/wallet/balances'), api<Offer[]>('/wallet/offers')])
       .then(([b, o]) => {
@@ -174,23 +208,85 @@ export default function WalletPage() {
               <th className="px-5 py-3 font-semibold">Customer</th>
               <th className="px-5 py-3 font-semibold">Mobile</th>
               <th className="px-5 py-3 text-right font-semibold">Balance</th>
+              <th className="px-5 py-3 text-right font-semibold">History</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {data && data.customers.length === 0 && (
-              <tr><td colSpan={3} className="px-5 py-10 text-center text-slate-400">No customer has wallet balance yet.</td></tr>
+              <tr><td colSpan={4} className="px-5 py-10 text-center text-slate-400">No customer has wallet balance yet.</td></tr>
             )}
             {data && data.customers.map((c) => (
               <tr key={c.id} className="hover:bg-slate-50/60">
                 <td className="px-5 py-3"><Link to={'/customers/' + c.id} className="font-medium text-indigo-700 hover:underline">{c.name}</Link></td>
                 <td className="px-5 py-3 text-slate-600">+91 {c.phone}</td>
                 <td className="px-5 py-3 text-right font-semibold text-slate-800">{inr(Number(c.walletBalance))}</td>
+                <td className="px-5 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => openHistory(c.id)}
+                    disabled={historyBusy}
+                    className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                  >
+                    History
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {topCust && <WalletTopUp customer={topCust} onClose={() => setTopCust(null)} onDone={load} />}
+      {history && (
+        <Modal
+          title="Wallet Transaction History"
+          subtitle={history.customer.name + ' - ' + history.customer.phone}
+          onClose={() => setHistory(null)}
+        >
+          <div className="space-y-3">
+            <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+              Current wallet balance: <strong>{inr(Number(history.balance))}</strong>
+            </div>
+            {history.transactions.filter((t) => t.type === 'TOPUP').length === 0 ? (
+              <div className="py-8 text-center text-sm text-slate-400">No top-up history found.</div>
+            ) : (
+              <div className="max-h-[55vh] space-y-2 overflow-y-auto">
+                {history.transactions.filter((t) => t.type === 'TOPUP').map((t) => (
+                  <div key={t.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-800">{inr(Number(t.amount))} credited</div>
+                      <div className="text-xs text-slate-500">
+                        {new Date(t.createdAt).toLocaleString('en-IN')}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-600">
+                        Paid: {inr(Number(t.paidAmount ?? t.amount))}
+                        {' | '}Bonus: {inr(Number(t.bonusAmount ?? 0))}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Mode: {t.mode || '-'} | Balance after: {inr(Number(t.balanceAfter))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptTx(t)}
+                      className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700"
+                    >
+                      View / Print
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+      {receiptTx && history && (
+        <WalletReceiptModal
+          tx={receiptTx}
+          all={history.transactions}
+          customer={history.customer}
+          onClose={() => setReceiptTx(null)}
+        />
+      )}
       {form && (
         <Modal title={form.id ? 'Edit offer' : 'Add recharge offer'} subtitle="Example: customer pays 10000, wallet gets 15000." onClose={() => setForm(null)}>
           <form onSubmit={saveOffer} className="space-y-4" noValidate>
@@ -220,3 +316,5 @@ export default function WalletPage() {
     </div>
   );
 }
+
+
