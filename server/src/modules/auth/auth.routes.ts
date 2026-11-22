@@ -75,5 +75,29 @@ router.post('/change-password', authenticate, async (req, res) => {
   await prisma.auditLog.create({ data: { userId: me.id, action: 'CHANGE_PASSWORD', entity: 'User', entityId: String(me.id) } });
   res.json({ ok: true });
 });
+router.post('/change-login-id', authenticate, async (req, res) => {
+  const p = z
+    .object({ currentPassword: z.string().min(1), newPhone: z.string().regex(/^[6-9]\d{9}$/) })
+    .safeParse(req.body);
+  if (!p.success) {
+    return res.status(400).json({ message: 'Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9' });
+  }
+  const me = (req as any).user;
+  const u = await prisma.user.findUnique({ where: { id: me.id } });
+  if (!u || !(await bcrypt.compare(p.data.currentPassword, u.passwordHash))) {
+    return res.status(400).json({ message: 'Current password is incorrect' });
+  }
+  if (u.phone === p.data.newPhone) {
+    return res.status(400).json({ message: 'This is already your login mobile number' });
+  }
+  const taken = await prisma.user.findUnique({ where: { phone: p.data.newPhone } });
+  if (taken) return res.status(409).json({ message: 'This mobile number is already used by another login' });
+  await prisma.user.update({ where: { id: me.id }, data: { phone: p.data.newPhone } });
+  await prisma.auditLog.create({
+    data: { userId: me.id, action: 'CHANGE_LOGIN_ID', entity: 'User', entityId: String(me.id) },
+  });
+  res.json({ ok: true });
+});
 export default router;
+
 

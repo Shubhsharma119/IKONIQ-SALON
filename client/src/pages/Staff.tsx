@@ -52,7 +52,7 @@ type Errors = Partial<Record<keyof typeof emptyForm, string>>;
 function validate(f: typeof emptyForm, isEdit: boolean): Errors {
   const e: Errors = {};
   if (f.name.trim().length < 2) e.name = 'Enter the full name (at least 2 letters).';
-  if (!isEdit && !/^[6-9]\d{9}$/.test(f.phone)) e.phone = 'Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9.';
+  if (!/^[6-9]\d{9}$/.test(f.phone)) e.phone = 'Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9.';
   if (f.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) e.email = 'Enter a valid email address.';
   if (!isEdit && f.password.length < 6) e.password = 'Password must be at least 6 characters.';
   if (isEdit && f.password && f.password.length < 6) e.password = 'New password must be at least 6 characters.';
@@ -122,7 +122,7 @@ export default function StaffPage() {
     if (form.email.trim()) body.email = form.email.trim();
     if (form.joiningDate) body.joiningDate = form.joiningDate;
     if (form.password) body.password = form.password;
-    if (!isEdit) body.phone = form.phone;
+    if (!isEdit || form.phone !== editing!.phone) body.phone = form.phone;
     if (!(isEdit && editing!.role === 'OWNER')) body.role = form.role;
     setBusy(true);
     try {
@@ -255,7 +255,7 @@ export default function StaffPage() {
               label="Mobile number"
               required={!editing}
               error={errors.phone}
-              hint={editing ? 'Mobile number is the login ID and cannot be changed.' : '10 digits, without country code. This is the login ID.'}
+              hint="10 digits, without country code. This is the login ID. If you change it, the staff member must sign in with the new number."
             >
               <div className="flex">
                 <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-500">+91</span>
@@ -264,7 +264,7 @@ export default function StaffPage() {
                   placeholder="9876543210"
                   inputMode="numeric"
                   maxLength={10}
-                  disabled={!!editing}
+                  disabled={!canManage}
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                 />
@@ -349,3 +349,7 @@ export default function StaffPage() {
     </div>
   );
 }
+
+
+
+

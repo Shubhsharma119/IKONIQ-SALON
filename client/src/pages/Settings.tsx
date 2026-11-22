@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import Field, { inputCls } from '../components/Field';
 import { useToast } from '../components/Toast';
 import { applySettings } from '../salon';
+import ChangeLoginId from '../components/ChangeLoginId';
 type Day = { day: number; open: boolean; from: string; to: string };
 type Cfg = {
   salon: any;
@@ -531,7 +532,9 @@ export default function SettingsPage() {
       {cfg && tab === 'hours' && <HoursTab cfg={cfg} canEdit={canEdit} onSaved={onSaved} />}
       {cfg && tab === 'holidays' && <HolidaysTab cfg={cfg} canEdit={canEdit} onSaved={onSaved} />}
       {cfg && tab === 'whatsapp' && cfg.whatsapp && <WhatsAppTab cfg={cfg} onSaved={onSaved} />}
-      {tab === 'account' && <AccountTab />}
+      {tab === 'account' && (<><AccountTab /><div className="mt-6"><ChangeLoginId /></div></>)}
     </div>
   );
 }
+
+

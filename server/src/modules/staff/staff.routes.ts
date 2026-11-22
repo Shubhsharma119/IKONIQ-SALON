@@ -30,6 +30,7 @@ const createSchema = z.object({
   commissionPercent: z.number().min(0).max(100).default(0),
 });
 const updateSchema = z.object({
+  phone: phoneRule.optional(),
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   password: z.string().min(6).optional(),
@@ -85,7 +86,7 @@ router.put('/:id', canManage, async (req, res) => {
   if (id === me.id && p.data.isActive === false) {
     return res.status(400).json({ message: 'You cannot deactivate your own account' });
   }
-  const { name, email, password, role, isActive, designation, joiningDate, baseSalary, commissionPercent } = p.data;
+  const { name, phone, email, password, role, isActive, designation, joiningDate, baseSalary, commissionPercent } = p.data;
   const profile = { designation, joiningDate, baseSalary, commissionPercent };
   try {
     const user = await prisma.user.update({
@@ -95,6 +96,7 @@ router.put('/:id', canManage, async (req, res) => {
         email,
         role,
         isActive,
+        ...(phone ? { phone } : {}),
         ...(password ? { passwordHash: await bcrypt.hash(password, 10) } : {}),
         staffProfile: { upsert: { create: profile, update: profile } },
       },
@@ -105,8 +107,12 @@ router.put('/:id', canManage, async (req, res) => {
     });
     res.json(user);
   } catch (e: any) {
-    if (e.code === 'P2002') return res.status(409).json({ message: 'Email already registered' });
+    if (e.code === 'P2002') return res.status(409).json({ message: 'Mobile number or email already registered' });
     throw e;
   }
 });
 export default router;
+
+
+
+
