@@ -20,6 +20,7 @@ import historyRoutes from './modules/history/history.routes';
 import expenseRoutes from './modules/expenses/expenses.routes';
 import supplierRoutes from './modules/suppliers/suppliers.routes';
 import purchaseRoutes from './modules/suppliers/purchases.routes';
+import orderRoutes from './modules/suppliers/orders.routes';
 import masterRoutes from './modules/master/master.routes';
 const app = express();
 app.use(helmet());
@@ -44,6 +45,7 @@ app.use('/api/history', historyRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/purchases', purchaseRoutes);
+app.use('/api/purchase-orders', orderRoutes);
 app.use('/api/master-report', masterRoutes);
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
@@ -51,6 +53,8 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`SalonPro API running on ${port}`));
+
+
 
 
 

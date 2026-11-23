@@ -14,6 +14,7 @@ import MembershipsPage from './pages/MembershipsPage';
 import WalletPage from './pages/Wallet';
 import Expenses from './pages/Expenses';
 import Suppliers from './pages/Suppliers';
+import SuppliersHub from './pages/SuppliersHub';
 import CustomerProfile from './pages/CustomerProfile';
 import Billing from './pages/Billing';
 import SettingsPage from './pages/Settings';
@@ -35,7 +36,7 @@ export default function App() {
         <Route path="/customers/:id" element={<CustomerProfile />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/expenses" element={<Expenses />} />
-        <Route path="/suppliers" element={<Suppliers />} />
+        <Route path="/suppliers" element={<SuppliersHub />} />
         <Route path="/services" element={<Services />} />
         <Route path="/staff" element={<Staff />} />
         <Route path="/appointments" element={<Appointments />} />
@@ -50,6 +51,7 @@ export default function App() {
     </Routes>
   );
 }
+
 
 
 

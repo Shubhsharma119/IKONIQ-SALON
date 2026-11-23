@@ -414,6 +414,7 @@ model Supplier {
   branchId      Int?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+  purchaseOrders PurchaseOrder[]
   purchases     Purchase[]
   payments      SupplierPayment[]
   @@index([name])
@@ -480,3 +481,50 @@ model Setting {
 }
 
 
+model PurchaseOrder {
+  id           Int                    @id @default(autoincrement())
+  poNo         String                 @unique
+  supplierId   Int
+  supplier     Supplier               @relation(fields: [supplierId], references: [id])
+  orderDate    DateTime
+  expectedDate DateTime?
+  subtotal     Decimal                @db.Decimal(12, 2)
+  gstAmount    Decimal                @default(0) @db.Decimal(12, 2)
+  total        Decimal                @db.Decimal(12, 2)
+  note         String?
+  state        String                 @default("OPEN")
+  stateReason  String?
+  stateAt      DateTime?
+  stateById    Int?
+  branchId     Int?
+  createdById  Int?
+  createdAt    DateTime               @default(now())
+  items        PurchaseOrderItem[]
+  receipts     PurchaseOrderReceipt[]
+  @@index([supplierId, orderDate])
+}
+model PurchaseOrderItem {
+  id        Int                    @id @default(autoincrement())
+  poId      Int
+  po        PurchaseOrder          @relation(fields: [poId], references: [id], onDelete: Cascade)
+  productId Int
+  name      String
+  qty       Decimal                @db.Decimal(12, 3)
+  rate      Decimal                @db.Decimal(10, 2)
+  gstRate   Decimal                @default(0) @db.Decimal(5, 2)
+  gstAmount Decimal                @default(0) @db.Decimal(12, 2)
+  amount    Decimal                @db.Decimal(12, 2)
+  receipts  PurchaseOrderReceipt[]
+}
+model PurchaseOrderReceipt {
+  id          Int               @id @default(autoincrement())
+  poId        Int
+  po          PurchaseOrder     @relation(fields: [poId], references: [id], onDelete: Cascade)
+  poItemId    Int
+  poItem      PurchaseOrderItem @relation(fields: [poItemId], references: [id], onDelete: Cascade)
+  purchaseId  Int
+  qty         Decimal           @db.Decimal(12, 3)
+  createdById Int?
+  createdAt   DateTime          @default(now())
+  @@index([purchaseId])
+}
