@@ -610,6 +610,7 @@ router.post('/:id/cancel', canCancel, async (req, res) => {
           data: {
             status: 'CANCELLED',
             appointmentId: null,
+            paidAmount: 0,
             cancelReason: p.data.reason.trim(),
             cancelledAt: new Date(),
             cancelledById: me.id,
@@ -626,6 +627,7 @@ router.post('/:id/cancel', canCancel, async (req, res) => {
     return fail(res, e);
   }
 });export default router;
+
 
 
 

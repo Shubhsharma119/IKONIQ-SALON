@@ -160,7 +160,7 @@ function InvoiceView(props: { inv: Invoice; canBill: boolean; onClose: () => voi
                 <div className="flex justify-between text-slate-600"><span>GST @ {n(inv.gstRate)}%</span><span>{inr(n(inv.gstAmount))}</span></div>
               )}
               <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold text-slate-800"><span>Total</span><span>{inr(n(inv.total))}</span></div>
-              <div className="flex justify-between text-slate-600"><span>Paid</span><span>{inr(n(inv.paidAmount))}</span></div>
+              <div className="flex justify-between text-slate-600"><span>Paid</span><span>{inr(inv.status === 'CANCELLED' ? 0 : n(inv.paidAmount))}</span></div>
               {due > 0.004 && inv.status !== 'CANCELLED' && <div className="flex justify-between font-semibold text-rose-600"><span>Balance due</span><span>{inr(due)}</span></div>}
             </div>
             {(() => {
@@ -987,6 +987,7 @@ export default function Billing() {
     </div>
   );
 }
+
 
 
 

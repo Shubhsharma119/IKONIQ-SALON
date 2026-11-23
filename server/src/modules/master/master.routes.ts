@@ -11,6 +11,29 @@ const live = { status: { not: 'CANCELLED' as const } };
 const pad = (n: number) => String(n).padStart(2, '0');
 const dayKey = (d: Date) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const monthKey = (d: Date) => d.getFullYear() + '-' + pad(d.getMonth() + 1);
+async function keptRows(from: Date, to: Date) {
+  const rows = await prisma.invoice.findMany({
+    where: { status: 'CANCELLED' as const, cancelledAt: { gte: from, lt: to } },
+    select: { cancelledAt: true, payments: { select: { mode: true, amount: true } } },
+  });
+  const out: { at: Date; mode: string; amount: number }[] = [];
+  for (const inv of rows) {
+    let cashIn = 0;
+    let cashOut = 0;
+    let mode = 'CASH';
+    for (const p of inv.payments) {
+      if (p.mode === 'WALLET') continue;
+      const a = num(p.amount);
+      if (a > 0) {
+        if (cashIn === 0) mode = p.mode;
+        cashIn += a;
+      } else cashOut += -a;
+    }
+    const kept = r2(cashIn - cashOut);
+    if (kept > 0.004 && inv.cancelledAt) out.push({ at: inv.cancelledAt, mode, amount: kept });
+  }
+  return out;
+}
 async function kpis(from: Date, to: Date) {
   const range = { gte: from, lt: to };
   const [inv, pay, top, exp, newCust, items, cancelled] = await Promise.all([
@@ -19,7 +42,7 @@ async function kpis(from: Date, to: Date) {
       _sum: { total: true, taxableAmount: true, gstAmount: true, discountAmount: true, membershipDiscount: true },
       _count: { _all: true },
     }),
-    prisma.payment.aggregate({ where: { createdAt: range, mode: { not: 'WALLET' as const } }, _sum: { amount: true } }),
+    prisma.payment.aggregate({ where: { createdAt: range, mode: { not: 'WALLET' as const }, invoice: { status: { not: 'CANCELLED' as const } } }, _sum: { amount: true } }),
     prisma.walletTransaction.aggregate({ where: { type: 'TOPUP' as const, createdAt: range }, _sum: { paidAmount: true } }),
     prisma.expense.aggregate({ where: { expenseDate: range, isVoid: false }, _sum: { amount: true } }),
     prisma.customer.count({ where: { createdAt: range } }),
@@ -42,6 +65,7 @@ async function kpis(from: Date, to: Date) {
   let cogs = 0;
   for (const i of items) cogs += num(i.qty) * (cost[i.productId as number] || 0);
   const netSales = num(inv._sum.taxableAmount);
+  const kept = (await keptRows(from, to)).reduce((s, k) => s + k.amount, 0);
   const expenses = num(exp._sum.amount);
   const bills = inv._count._all;
   return {
@@ -50,7 +74,7 @@ async function kpis(from: Date, to: Date) {
     netSales: r2(netSales),
     gst: r2(num(inv._sum.gstAmount)),
     discounts: r2(num(inv._sum.discountAmount) + num(inv._sum.membershipDiscount)),
-    collection: r2(num(pay._sum.amount) + num(top._sum.paidAmount)),
+    collection: r2(num(pay._sum.amount) + num(top._sum.paidAmount) + kept),
     expenses: r2(expenses),
     cogs: r2(cogs),
     profit: r2(netSales - cogs - expenses),
@@ -84,7 +108,7 @@ router.get('/', async (req, res) => {
         items: { select: { itemType: true, productId: true, staffId: true, name: true, qty: true, amount: true } },
       },
     }),
-    prisma.payment.findMany({ where: { createdAt: range }, select: { createdAt: true, mode: true, amount: true } }),
+    prisma.payment.findMany({ where: { createdAt: range, invoice: { status: { not: 'CANCELLED' as const } } }, select: { createdAt: true, mode: true, amount: true } }),
     prisma.walletTransaction.findMany({
       where: { type: 'TOPUP' as const, createdAt: range },
       select: { createdAt: true, paidAmount: true, mode: true },
@@ -137,6 +161,11 @@ router.get('/', async (req, res) => {
     if (t) t.sales += num(i.total);
   }
   const modeTotals: Record<string, number> = {};
+  for (const k of await keptRows(from, to)) {
+    modeTotals[k.mode] = (modeTotals[k.mode] || 0) + k.amount;
+    const t = trendMap.get(keyOf(k.at));
+    if (t) t.collection += k.amount;
+  }
   let walletUsed = 0;
   for (const p of payments as any[]) {
     if (p.mode === 'WALLET') {
@@ -323,3 +352,9 @@ router.get('/', async (req, res) => {
   });
 });
 export default router;
+
+
+
+
+
+

@@ -39,7 +39,7 @@ router.get('/', async (_req, res) => {
       select: { createdAt: true, total: true },
     }),
     Promise.all([
-      prisma.payment.aggregate({ where: { createdAt: { gte: start, lt: end }, mode: { not: 'WALLET' as const } }, _sum: { amount: true } }),
+      prisma.payment.aggregate({ where: { createdAt: { gte: start, lt: end }, mode: { not: 'WALLET' as const }, invoice: { status: { not: 'CANCELLED' as const } } }, _sum: { amount: true } }),
       prisma.walletTransaction.aggregate({ where: { type: 'TOPUP' as const, createdAt: { gte: start, lt: end } }, _sum: { paidAmount: true } }),
     ]).then(([pay, top]) => ({ _sum: { amount: Number(pay._sum.amount ?? 0) + Number(top._sum.paidAmount ?? 0) } })),
     prisma.invoiceItem.groupBy({
@@ -82,6 +82,21 @@ router.get('/', async (_req, res) => {
   ]);
   const todayExpenses = round2(Number(expAgg._sum.amount ?? 0));
   const todayNet = round2(Number(taxAgg._sum.taxableAmount ?? 0));
+  const cancelledToday = await prisma.invoice.findMany({
+    where: { status: 'CANCELLED' as const, cancelledAt: { gte: start, lt: end } },
+    select: { payments: { select: { mode: true, amount: true } } },
+  });
+  let keptAsWallet = 0;
+  for (const c of cancelledToday) {
+    let cashIn = 0;
+    let cashOut = 0;
+    for (const p of c.payments) {
+      if (p.mode === 'WALLET') continue;
+      if (Number(p.amount) > 0) cashIn += Number(p.amount);
+      else cashOut += -Number(p.amount);
+    }
+    keptAsWallet += Math.max(0, cashIn - cashOut);
+  }
   const lowStock = stockRows
     .filter((p) => Number(p.stockQty) <= Number(p.lowStockLevel))
     .slice(0, 5)
@@ -96,7 +111,7 @@ router.get('/', async (_req, res) => {
     week,
     lowStock,
     todaySales: week[6].sales,
-    todayCollection: round2(Number(collection._sum.amount ?? 0)),
+    todayCollection: round2(Number(collection._sum.amount ?? 0) + keptAsWallet),
     todayExpenses,
     estimatedProfit: round2(todayNet - todayExpenses),
     todayAppointments,
@@ -104,6 +119,9 @@ router.get('/', async (_req, res) => {
   });
 });
 export default router;
+
+
+
 
 
 

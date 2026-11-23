@@ -138,8 +138,9 @@ th, td { padding:5px 4px; border-bottom:1px solid #bbb; text-align:left; }
   row('TOTAL', RS + ' ' + money(t.total), true);
   let pay = '';
   if (scope === 'full') {
-    const paid = n(inv.paidAmount);
-    const due = r2(n(inv.total) - paid);
+    const cancelled = inv.status === 'CANCELLED';
+    const paid = cancelled ? 0 : n(inv.paidAmount);
+    const due = cancelled ? 0 : r2(n(inv.total) - paid);
     pay =
       '<div class="hr"></div>' +
       inv.payments
@@ -148,7 +149,7 @@ th, td { padding:5px 4px; border-bottom:1px solid #bbb; text-align:left; }
       '<div class="row b"><span>Paid</span><span>' + RS + ' ' + money(paid) + '</span></div>' +
       (due > 0.004
         ? '<div class="row b"><span>Balance due</span><span>' + RS + ' ' + money(due) + '</span></div>'
-        : '<div class="c b" style="margin-top:4px">PAID IN FULL</div>') +
+        : '<div class="c b" style="margin-top:4px">' + (cancelled ? 'BILL CANCELLED' : 'PAID IN FULL') + '</div>') +
       (inv.walletBalanceAfter !== null && inv.walletBalanceAfter !== undefined
         ? '<div class="row"><span>E-Wallet balance</span><span>' + RS + ' ' + money(n(inv.walletBalanceAfter)) + '</span></div>'
         : '') +
@@ -201,6 +202,9 @@ export function printInvoice(inv: Invoice, scope: PrintScope, paper: Paper) {
     }, 60000);
   }, 400);
 }
+
+
+
 
 
 
